@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent } from "react";
 import { ArrowUp, Paperclip, Sparkles } from "lucide-react";
+import { BACKEND_MODE } from "../backend";
 
 type Props = {
   disabled?: boolean;
@@ -54,7 +55,9 @@ export function Composer({ disabled, onSend }: Props) {
               </button>
               <div className="inline-flex items-center gap-1 px-2 h-9 rounded-md text-xs text-muted-foreground">
                 <Sparkles size={13} />
-                <span>Mock backend</span>
+                <span>
+                  {BACKEND_MODE === "real" ? "Claude Sonnet 4.5" : "Mock backend"}
+                </span>
               </div>
             </div>
             <button
@@ -69,7 +72,9 @@ export function Composer({ disabled, onSend }: Props) {
           </div>
         </div>
         <p className="text-center text-[11px] text-muted-foreground mt-2">
-          Phase 1 MVP · canned response from <code>/api/chat</code>
+          {BACKEND_MODE === "real"
+            ? "Connected to vercel/chatbot · Anthropic"
+            : "Phase 1 MVP · canned response from /api/chat"}
         </p>
       </div>
     </div>

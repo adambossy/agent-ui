@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { Plus, MessageSquare } from "lucide-react";
+import { BACKEND_MODE } from "../backend";
 
 type Props = { onNavigate?: () => void };
 
@@ -46,9 +47,22 @@ export function Sidebar({ onNavigate }: Props) {
         </ul>
       </div>
 
-      <div className="px-3 py-3 border-t border-border text-[11px] text-muted-foreground">
-        mock backend · phase 1
-      </div>
+      <BackendBadge />
+    </div>
+  );
+}
+
+function BackendBadge() {
+  const isReal = BACKEND_MODE === "real";
+  return (
+    <div className="px-3 py-3 border-t border-border text-[11px] text-muted-foreground">
+      <span className={"inline-flex items-center gap-1.5 " + (isReal ? "text-emerald-600" : "")}>
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ background: isReal ? "rgb(16, 185, 129)" : "rgb(113, 113, 122)" }}
+        />
+        {isReal ? "real backend · localhost:3001" : "mock backend · phase 1"}
+      </span>
     </div>
   );
 }
