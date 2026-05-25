@@ -1,0 +1,60 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Environment (secrets — never tracked)
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+.npm/
+
+# Build artifacts
+dist/
+build/
+*.tsbuildinfo
+.next/
+.turbo/
+
+# App-local dev outputs (screenshots, preview pngs)
+app/_shots/
+report/_preview-*.png
+plan/_preview-*.png
+report/_preview-chatgpt.png
+report/_preview-index.png
+
+# Cloned upstream repos — kept locally for research only, not tracked
+opencode/repo/
+pi/repo/
+chatkit-js/chatkit-js/
+chatkit-js/starter/
+chatkit-js/advanced/
+vercel-chat-sdk/repo/
+vercel-ai-elements/repo/
+pi-web/
+
+# Large research outputs / scratch
+pi/large-session.html
+pi/live-export.html
+pi/screen-*.png
+pi/screens-*.png
+chatgpt/screens/
+chatgpt/sse-*.txt
+vercel-chat-sdk/sse-*.txt
+vercel-chat-sdk/screen-*.png
+
+# Playwright MCP scratch
+.playwright-mcp/
+
+# Notes scratch directories under per-target folders (research artifacts only)
+chatgpt/notes/
+chatkit-js/notes/
+vercel-chat-sdk/notes/
+vercel-ai-elements/notes/
