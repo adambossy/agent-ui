@@ -4,11 +4,13 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Message } from "../components/Message";
 import { Composer } from "../components/Composer";
+import { useSubagentStore, type SubagentEvent } from "../state/subagentStore";
 import type { UIMessage } from "../types";
 
 export function ChatScreen() {
   const params = useParams();
   const sessionId = params.sessionId ?? "new";
+  const applySubagent = useSubagentStore((s) => s.apply);
 
   const transport = useMemo(
     () =>
@@ -21,6 +23,13 @@ export function ChatScreen() {
   const { messages, sendMessage, status } = useChat({
     id: sessionId,
     transport,
+    onData: (part) => {
+      // Route subagent-event records into the substore. Other data-* channels
+      // (e.g. data-session-title) flow through messages as usual.
+      if (part.type === "data-subagent-event") {
+        applySubagent(part.data as SubagentEvent);
+      }
+    },
   });
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
