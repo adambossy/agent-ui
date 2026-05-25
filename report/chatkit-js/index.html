@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenAI ChatKit — Agent UI Deep Dive</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+
+<p class="crumbs"><a href="../index.html">← Executive summary</a> &nbsp;/&nbsp; OpenAI ChatKit</p>
+
+<header class="page-header">
+  <p class="eyebrow">Closed-source iframe · Apache-2.0 / MIT wrappers · OpenAI-only</p>
+  <h1>OpenAI ChatKit</h1>
+  <p class="lede">ChatKit is <em>not</em> actually open source where it counts. The three public repos (Apache-2.0 / MIT) ship only TypeScript declarations + a React forwarder. The actual chat UI is a closed minified bundle served from <code>cdn.platform.openai.com</code> inside an iframe, hard-bound to OpenAI's domain allowlist, Responses API, and Agents SDK. It is the same renderer that powers ChatGPT.com.</p>
+</header>
+
+<aside class="callout callout--bad" style="border-left-color: var(--bad);">
+  <strong>Headline answers.</strong>
+  <ul>
+    <li><strong>Open source?</strong> No — the runtime is not in the public repos. Only types + a wrapper.</li>
+    <li><strong>Self-host outside OpenAI?</strong> No, not as shipped. Four hard couplings (CDN, domain allowlist, managed-session API, Responses-API types).</li>
+  </ul>
+</aside>
+
+<div class="toc">
+  <h3>On this page</h3>
+  <ol>
+    <li><a href="#distribution">Distribution model</a></li>
+    <li><a href="#proprietary">External / proprietary dependencies</a></li>
+    <li><a href="#repos">The three repos</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#protocol">Streaming protocol</a></li>
+    <li><a href="#tools">Tool model</a></li>
+    <li><a href="#widgets">Widget DSL</a></li>
+    <li><a href="#auth">Auth and provider switching</a></li>
+    <li><a href="#chatgpt">Same renderer as ChatGPT.com</a></li>
+    <li><a href="#run">Run notes</a></li>
+  </ol>
+</div>
+
+<section id="distribution">
+<h2>1. Distribution model</h2>
+
+<table>
+  <tr><th>Artifact</th><th>Contents</th><th>Where</th></tr>
+  <tr><td><code>@openai/chatkit@1.7.0</code> npm</td><td>TypeScript <code>.d.ts</code> only, <strong>no runtime</strong></td><td>npm</td></tr>
+  <tr><td><code>@openai/chatkit-react@1.5.1</code> npm</td><td>6.5 KB compiled wrapper around <code>&lt;openai-chatkit&gt;</code> custom element</td><td>npm</td></tr>
+  <tr><td><code>chatkit.js</code> loader</td><td>26 KB minified bundle. Defines the custom element + iframe glue. <strong>Source not public.</strong></td><td><code>cdn.platform.openai.com/deployments/chatkit/chatkit.js</code></td></tr>
+  <tr><td>Actual ChatKit UI</td><td>Vite-built React SPA inside an iframe. HTML at <code>index-3RWktXtPur.html</code>, JS at <code>/assets/ck1/index-RpntorzE.js</code>, CSS at <code>/assets/ck1/index-DZ5eN2wS.css</code>. <strong>Source not public.</strong></td><td><code>cdn.platform.openai.com/deployments/chatkit/</code></td></tr>
+</table>
+
+<div class="callout callout--warn">
+  <strong>The repo's own docs admit it.</strong> <code>chatkit-js/packages/docs/src/content/docs/index.mdx:90</code>:
+  <blockquote style="margin: 10px 0; padding: 10px 14px; border-left: 3px solid var(--border-strong); font-style: italic;">"Who hosts the iframe that renders Chat UI? <strong>OpenAI</strong> | <strong>OpenAI</strong>"</blockquote>
+  — for <strong>both</strong> managed <em>and</em> self-hosted backends.
+</div>
+
+<details>
+  <summary>Verifying the npm package is types-only <span class="summary-tldr">— one shell command.</span></summary>
+  <div class="details-body">
+<pre><code>$ tar -tzf chatkit-1.7.0.tgz
+package/types/index.d.ts
+package/types/widgets.d.ts
+package/types/dom-augment.d.ts
+package/README.md
+package/LICENSE
+package/package.json
+# No JS files. No main, no module field in package.json.</code></pre>
+    <p><code>packages/chatkit/package.json:5,7-16</code> confirms <code>"types": "./types/index.d.ts"</code> with no <code>main</code> / <code>module</code>.</p>
+  </div>
+</details>
+
+<details>
+  <summary>The bundle does load the iframe HTML <span class="summary-tldr">— from the minified loader.</span></summary>
+  <div class="details-body">
+<pre><code>// chatkit.js (decoded fragment):
+var kt = document.currentScript,
+    Je = kt?.src || null,
+    lt = Je && Je.replace(/\/[^/]*$/, "/"),
+    ht = "index-3RWktXtPur.html";
+// → iframe.src = lt + ht
+//   → https://cdn.platform.openai.com/deployments/chatkit/index-3RWktXtPur.html</code></pre>
+    <p>The iframe HTML contains a revealing self-comment: <em>"⚠️ Anything added here that triggers network requests to non-customer origins ... must be stripped in vite.config.ts (transformIndexHtml) when VITE_DISABLE_NON_CUSTOMER_NETWORK_REQUESTS=true."</em> — confirming OpenAI builds it internally as a Vite app.</p>
+  </div>
+</details>
+</section>
+
+<section id="proprietary">
+<h2>2. External / proprietary dependencies</h2>
+
+<p>Hosts contacted by any ChatKit-embedding page, out of the box:</p>
+
+<table>
+  <tr><th>Host</th><th>Role</th><th>Required?</th></tr>
+  <tr><td><code>cdn.platform.openai.com</code></td><td>Hosts <code>chatkit.js</code> and the iframe app + assets.</td><td><span class="tag tag--bad">Yes</span></td></tr>
+  <tr><td><code>api.openai.com</code></td><td>Managed path only: <code>POST /v1/chatkit/sessions</code> with <code>OpenAI-Beta: chatkit_beta=v1</code> (undocumented beta endpoint).</td><td><span class="tag tag--warn">Managed only</span></td></tr>
+  <tr><td><code>cdn.openai.com</code></td><td>OpenAI Sans webfonts.</td><td><span class="tag">Cosmetic</span></td></tr>
+  <tr><td><code>platform.openai.com</code></td><td>Documentation + domain allowlist UI.</td><td><span class="tag">Setup only</span></td></tr>
+</table>
+
+<details>
+  <summary>postMessage protocol between host page and iframe <span class="summary-tldr">— 11 commands, ~20 events.</span></summary>
+  <div class="details-body">
+    <p>The web component creates <code>&lt;iframe class="ck-iframe" name="chatkit" allow="clipboard-read; clipboard-write; ..." frameborder="0" scrolling="no"&gt;</code> and communicates via <code>window.postMessage</code> with messages stamped <code>__oaiChatKit: !0</code>.</p>
+    <ul>
+      <li><strong>Commands</strong> (host → iframe): <code>command.fetchUpdates</code>, <code>command.focusComposer</code>, <code>command.hideHistory</code>, <code>command.sendCustomAction</code>, <code>command.sendUserMessage</code>, <code>command.setComposerValue</code>, <code>command.setOptions</code>, <code>command.setThreadId</code>, <code>command.setTrainingOptOut</code>, <code>command.shareThread</code>, <code>command.showHistory</code>.</li>
+      <li><strong>Events</strong> (iframe → host): <code>event.deeplink</code>, <code>event.effect</code>, <code>event.error</code>, <code>event.history.{open,close}</code>, <code>event.image.download</code>, <code>event.log</code>, <code>event.log.chatgpt</code>, <code>event.message.share</code>, <code>event.ready</code>, <code>event.response.{start,end,stop}</code>, <code>event.thread.{change,load.start,load.end,restore}</code>, <code>event.tool.change</code>, <code>event.toast.{show,hide}</code>, <code>event.composer.{layout.change,submit}</code>.</li>
+    </ul>
+    <p>Note <code>event.log.chatgpt</code> — telemetry is at minimum architected for.</p>
+  </div>
+</details>
+</section>
+
+<section id="repos">
+<h2>3. The three repos</h2>
+
+<table>
+  <tr><th>Repo</th><th>License</th><th>What's actually in it</th></tr>
+  <tr><td><code>openai/chatkit-js</code></td><td>Apache-2.0</td><td>pnpm monorepo. <code>packages/chatkit</code> = types only (3 <code>.d.ts</code> files). <code>packages/chatkit-react</code> = ~250-line React forwarder (<code>ChatKit.tsx</code>, <code>useChatKit.ts</code>). <code>packages/docs</code> = Astro/Starlight site. <strong>No runtime code for the chat UI anywhere.</strong></td></tr>
+  <tr><td><code>openai/openai-chatkit-starter-app</code></td><td>MIT</td><td>Two side-by-side reference apps: <code>chatkit/</code> (self-hosted: FastAPI + <code>openai-chatkit</code> Python SDK + <code>openai-agents</code>, Vite/React frontend) and <code>managed-chatkit/</code> (managed: FastAPI proxy that swaps <code>OPENAI_API_KEY</code> + <code>wf_...</code> workflow id for a <code>client_secret</code>). Both UIs are 5 lines of JSX.</td></tr>
+  <tr><td><code>openai/openai-chatkit-advanced-samples</code></td><td>MIT</td><td>Four scenario demos: <code>cat-lounge</code> (widgets, client effects, image gen), <code>customer-support</code> (attachments, dictation, action handlers, title agent), <code>news-guide</code> (@mentions, tool menu, progress events), <code>metro-map</code> (React Flow + annotations). All use <code>openai-agents</code> + <code>gpt-4.1-mini</code>.</td></tr>
+</table>
+</section>
+
+<section id="architecture">
+<h2>4. Architecture</h2>
+
+<p><strong>Component model.</strong> One web component: <code>&lt;openai-chatkit&gt;</code>. The React layer (<code>packages/chatkit-react/src/ChatKit.tsx:38-107</code>) renders that custom element, calls <code>el.setOptions(control.options)</code> after <code>customElements.whenDefined('openai-chatkit')</code> resolves, and wires every event through <code>EVENT_HANDLER_MAP</code>. <code>useChatKit</code> (<code>useChatKit.ts:13-22, 58-108</code>) exposes 8 imperative methods: <code>focusComposer</code>, <code>setThreadId</code>, <code>sendUserMessage</code>, <code>setComposerValue</code>, <code>fetchUpdates</code>, <code>sendCustomAction</code>, <code>showHistory</code>, <code>hideHistory</code>.</p>
+
+<p><strong>Thread-item types</strong> (extracted from the bundle):</p>
+<ul>
+  <li><code>assistant_message</code>, <code>user_message</code> — text turns.</li>
+  <li><code>client_tool_call</code> — UI-side tool invocation card.</li>
+  <li><code>end_of_turn</code> — turn boundary.</li>
+  <li><code>generated_image</code>, <code>image_generation</code> — progressive image generation.</li>
+  <li><code>structured_input</code> — form-style input.</li>
+  <li><code>task</code> — reasoning / "thinking" summary.</li>
+  <li><code>widget</code> — server-authored UI fragment (see §7).</li>
+  <li><code>workflow</code> — multi-step plan.</li>
+</ul>
+</section>
+
+<section id="protocol">
+<h2>5. Streaming protocol</h2>
+
+<p><strong>SSE over a single HTTPS endpoint</strong> (<code>POST /chatkit</code>; <code>starter/chatkit/backend/app/main.py:25-35</code>; returns <code>text/event-stream</code> when result is <code>StreamingResult</code>). <strong>Not</strong> Chat Completions delta and <strong>not</strong> raw Responses API — it's ChatKit's own thread-event protocol:</p>
+
+<ul>
+  <li><code>ThreadItemDoneEvent</code>, <code>ThreadItemReplacedEvent</code>, <code>ThreadItemUpdated</code></li>
+  <li><code>ProgressUpdateEvent</code></li>
+  <li><code>ClientEffectEvent</code></li>
+  <li><code>WidgetRootUpdated</code></li>
+</ul>
+
+<p>However, it is <strong>layered on the Responses API</strong>: <code>chatkit.agents.stream_agent_response</code> converts <code>openai-agents</code> Runner output (which emits Responses API events) into ChatKit events (<code>advanced/examples/cat-lounge/backend/app/server.py:110-113</code>). The Python <code>chatkit.types</code> re-exports <code>openai.types.responses.ResponseInputContentParam</code>, <code>ResponseInputImageParam</code>, <code>ResponseInputTextParam</code> directly.</p>
+
+<div class="callout callout--warn">
+  <strong>Rendering happens inside the closed iframe</strong>, so the visual treatment of reasoning, tool calls, etc. can only be described from the protocol surface — not from source. The iframe's React SPA is minified and unowned by the user.
+</div>
+</section>
+
+<section id="tools">
+<h2>6. Tool model</h2>
+
+<table>
+  <tr><th>Category</th><th>Where it runs</th><th>How it renders</th></tr>
+  <tr><td><strong>Server tools</strong></td><td>Python <code>@function_tool</code>s on the <code>openai-agents</code> <code>Agent</code></td><td>Server streams back <code>WidgetItem</code>, <code>AssistantMessageItem</code>, <code>ProgressUpdateEvent</code>, <code>HiddenContextItem</code>, or <code>ClientEffectEvent</code>. Tool call/result JSON is not rendered as such — the visible artifact is the chosen item type.</td></tr>
+  <tr><td><strong>Client tools</strong></td><td>Browser, handled by <code>onClientTool</code> handler (<code>types/index.d.ts:57-60</code>)</td><td><code>thread.item.client_tool_call</code> disclosure card. Result is streamed back to the model.</td></tr>
+  <tr><td><strong>Client effects</strong></td><td>Server → browser, fire-and-forget</td><td>Not rendered directly; <code>ClientEffectEvent</code> is handled in React <code>onEffect</code>. Used for "navigate", "play sound", "scroll", etc.</td></tr>
+</table>
+
+<p>Composer can also surface a <strong>tool menu</strong> (<code>composer.tools</code>, <code>types/index.d.ts:316-321, 524-557</code>) and a <strong>model picker</strong> (<code>composer.models</code>, <code>types/index.d.ts:327-328, 680-695</code>) — these pass through as <code>tool_choice</code> / <code>model</code> on the request.</p>
+</section>
+
+<section id="widgets">
+<h2>7. Widget DSL — the distinctive piece</h2>
+
+<p>ChatKit's signature feature: a server-authored, client-rendered widget protocol. Roughly <strong>25 components</strong> in <code>types/widgets.d.ts:1-598</code>:</p>
+
+<table>
+  <tr><th>Group</th><th>Components</th></tr>
+  <tr><td>Containers</td><td><code>Card</code>, <code>Box</code>, <code>Row</code>, <code>Col</code>, <code>Form</code></td></tr>
+  <tr><td>Text</td><td><code>Markdown</code>, <code>Title</code>, <code>Caption</code>, <code>Text</code>, <code>Label</code>, <code>Badge</code></td></tr>
+  <tr><td>Media</td><td><code>Icon</code>, <code>Image</code></td></tr>
+  <tr><td>Inputs</td><td><code>Input</code>, <code>Textarea</code>, <code>Select</code>, <code>DatePicker</code>, <code>RadioGroup</code>, <code>Checkbox</code>, <code>Button</code></td></tr>
+  <tr><td>Lists</td><td><code>ListView</code>, <code>ListViewItem</code></td></tr>
+  <tr><td>Table</td><td><code>Table</code>, <code>Table.Row</code>, <code>Table.Cell</code></td></tr>
+  <tr><td>Layout</td><td><code>Divider</code>, <code>Spacer</code>, <code>Transition</code></td></tr>
+</table>
+
+<p>Widgets are JSON authored on the server (e.g. <code>cat_agent.py</code> builds a <code>Card</code> with a <code>ListView</code> of cats) and rendered by the closed iframe.</p>
+
+<div class="callout">
+  <strong>The catch.</strong> Only ChatKit's renderer can render ChatKit widgets. The widget DSL is rich, but it's locked to OpenAI's UI.
+</div>
+</section>
+
+<section id="auth">
+<h2>8. Auth and provider switching</h2>
+
+<table>
+  <tr><th>Mode</th><th>Config</th><th>Auth flow</th></tr>
+  <tr><td>Self-hosted</td><td><code>CustomApiConfig = { url, domainKey, fetch?, uploadStrategy? }</code></td><td><code>api.url</code> can be any URL; cookie/header auth between browser and your <code>/chatkit</code> endpoint is your problem (inject via custom <code>fetch</code>). <code>domain_pk_localhost_dev</code> is the universal local placeholder; production requires registering your domain at <code>platform.openai.com</code>.</td></tr>
+  <tr><td>Managed</td><td><code>HostedApiConfig = { getClientSecret }</code></td><td>Your server calls <code>api.openai.com/v1/chatkit/sessions</code> with <code>OPENAI_API_KEY</code> + workflow id to mint a <code>client_secret</code>; the iframe authenticates each request with that secret.</td></tr>
+</table>
+
+<p>There is <strong>no ChatGPT user token concept</strong> — auth is between your app and OpenAI's API + iframe; ChatGPT.com login is not involved. But the <code>domain_pk_...</code> is permanently tied to a <code>platform.openai.com</code> organization.</p>
+
+<details open>
+  <summary><strong>Can the OpenAI key be swapped for Anthropic / Azure / OpenRouter?</strong> <span class="summary-tldr">— in theory; practically, no.</span></summary>
+  <div class="details-body">
+    <p>Not without writing a custom <code>ChatKitServer.respond()</code> from scratch:</p>
+    <ul>
+      <li>Every example targets <code>openai-agents</code> + <code>gpt-4.1-mini</code>.</li>
+      <li><code>chatkit.types</code> is implemented in terms of <code>openai.types.responses.*</code>.</li>
+      <li><code>grep</code> for <code>Anthropic</code> / <code>claude</code> / <code>azure</code> / <code>OpenRouter</code> / <code>gemini</code> across all three repos returns <strong>zero</strong> hits.</li>
+    </ul>
+    <p>The SSE protocol is in principle provider-agnostic, so a determined developer could yield ChatKit events from any source — but you would re-implement the converter, lose image-gen partial streaming, lose reasoning-summary support, lose the Agent Builder workflow runtime — <strong>and still hit OpenAI's CDN + domain allowlist.</strong></p>
+  </div>
+</details>
+</section>
+
+<section id="chatgpt">
+<h2>9. Same renderer as ChatGPT.com</h2>
+
+<p>The bundle's capability profiles literally name three modes — visible in <code>chatkit.js</code>:</p>
+
+<pre><code>Xe = {
+  chatkit:                { allow: [...] },
+  "chatgpt-shell":        { ... },
+  "chatgpt-shell-anonymous": { ... }
+}</code></pre>
+
+<p>ChatGPT.com appears to be a ChatKit consumer where the <code>chatgpt-shell</code> profile enables additional commands (<code>command.shareThread</code>, <code>event.thread.restore</code>, <code>event.message.share</code>, <code>event.image.download</code>, <code>command.setTrainingOptOut</code>).</p>
+
+<div class="callout">
+  <strong>Implication.</strong> For end users this means ChatKit integrations will feel exactly like ChatGPT, because they <em>are</em> the same renderer. For developers it means you are renting a UI OpenAI controls end-to-end — they ship updates to your users without you redeploying, but you cannot patch a bug, customize a render path, audit DOM behavior, fork to add a feature, host a stable older version, or run an air-gapped deployment.
+</div>
+</section>
+
+<section id="run">
+<h2>10. Run notes — starter app</h2>
+
+<ol>
+  <li><code>npm install</code> in <code>starter/chatkit/</code> — succeeded (25 packages; root only installs <code>concurrently</code>).</li>
+  <li><code>npm install</code> in <code>starter/chatkit/frontend/</code> — succeeded (177 packages; Vite 7, React 19, <code>@openai/chatkit-react@^1.1.1</code>; 10 audit warnings, all transitive).</li>
+  <li><code>scripts/run.sh</code> refuses to start without <code>OPENAI_API_KEY</code> (<code>scripts/run.sh:33-36</code>).</li>
+</ol>
+
+<p>Required env vars: <code>OPENAI_API_KEY</code> (required, backend), <code>VITE_CHATKIT_API_URL</code> (optional, defaults <code>/chatkit</code>), <code>VITE_CHATKIT_API_DOMAIN_KEY</code> (optional, defaults <code>domain_pk_localhost_dev</code>). Managed flavor additionally needs <code>VITE_CHATKIT_WORKFLOW_ID=wf_...</code>.</p>
+</section>
+
+<section>
+<h2>Artifacts</h2>
+<ul>
+  <li><a href="../../chatkit-js/FINDINGS.md">FINDINGS.md</a> — full raw notes including bundle decoded fragments and per-file citations.</li>
+  <li><a href="../../chatkit-js/BLOCKERS.md">BLOCKERS.md</a> — what's needed to actually run the starter.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/chatkit-js/chatkit-js/</span> — cloned package monorepo.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/chatkit-js/starter/</span> — starter app.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/chatkit-js/advanced/</span> — four advanced samples.</li>
+</ul>
+</section>
+
+<p class="foot"><a href="../index.html">← Back to executive summary</a></p>
+
+</div>
+</body>
+</html>

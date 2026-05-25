@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>earendil-works/pi — Agent UI Deep Dive</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+
+<p class="crumbs"><a href="../index.html">← Executive summary</a> &nbsp;/&nbsp; earendil-works/pi</p>
+
+<header class="page-header">
+  <p class="eyebrow">CLI / TUI · Open source · TypeScript</p>
+  <h1>earendil-works/pi</h1>
+  <p class="lede">A single tagged-union <code>AgentEvent</code> drives every surface — TUI, JSONL stdout, RPC mode, web UI library, and static HTML export. Every message update carries a full <code>AssistantMessage</code> snapshot, so consumers re-paint from the snapshot and don't need to track per-token diffs.</p>
+</header>
+
+<aside class="callout callout--good">
+  <strong>Correction.</strong> Pi <em>does</em> have a web UI — published as the npm package <code>@earendil-works/pi-web-ui</code> (formerly <code>@mariozechner/pi-web-ui</code>, now deprecated). It's built with <em>mini-lit web components</em> + Tailwind v4 and ships a Vite-driven example. The source lives in a separate package not currently in <code>github.com/earendil-works/pi</code>'s public <code>packages/</code> tree, but the example was installed from npm and run locally — screenshot below.
+</aside>
+
+<figure>
+  <img src="web-ui-baseline.png" alt="pi web UI baseline — empty state of @earendil-works/pi-web-ui example">
+  <figcaption>Pi web UI (<code>@earendil-works/pi-web-ui</code> 0.75.3) running at <code>http://localhost:5173</code>. Top bar (left to right): session history, new chat, "Pi Web UI Example" title; right side: notifications bell, theme toggle, settings gear. Composer (bottom): attachment paperclip, thinking-level dropdown ("Off"), model selector showing <code>claude-sonnet-4-5-20250929</code>, send button. Dark theme.</figcaption>
+</figure>
+
+<h2 id="webui">Web UI — source deep dive</h2>
+
+<p>Source: <code>node_modules/@earendil-works/pi-web-ui/src/</code> (the unminified TypeScript inside the npm tarball — the package is shipped npm-only; no public git repo on the parent monorepo's main branch).</p>
+
+<details open>
+  <summary>Distribution + stack <span class="summary-tldr">— Lit web components, no React.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li><strong>Package:</strong> <code>@earendil-works/pi-web-ui</code> v0.75.3 (271 versions of the deprecated <code>@mariozechner/pi-web-ui</code> precede it).</li>
+      <li><strong>Stack:</strong> <code>@mariozechner/mini-lit</code> web components + Tailwind v4 + Lit 3 + lucide icons. No React, no Vue, no SvelteKit.</li>
+      <li><strong>Tools shipped with the example:</strong> JavaScript REPL (sandboxed), document extraction (PDF/DOCX/XLSX/PPTX), artifacts (HTML/SVG/Markdown previews).</li>
+      <li><strong>Example workflow:</strong> <code>npm pack @earendil-works/pi-web-ui</code> → extract → copy <code>package/example</code> → swap workspace deps for npm-published — runs at <code>localhost:5173</code> via Vite.</li>
+    </ul>
+  </div>
+</details>
+
+<details open>
+  <summary>Two-track rendering: stable list + RAF-batched streaming overlay <span class="summary-tldr">— the defining architectural choice.</span></summary>
+  <div class="details-body">
+    <p><code>AgentInterface</code> (<code>components/AgentInterface.ts:19-403</code>) hosts <strong>two separate components</strong>:</p>
+    <ul>
+      <li><code>&lt;message-list&gt;</code> renders <em>completed</em> messages, keyed by index (<code>MessageList.ts:11-93</code>). It re-renders only when a new message is appended.</li>
+      <li><code>&lt;streaming-message-container&gt;</code> renders the <em>single in-flight assistant message</em> (<code>StreamingMessageContainer.ts:6-104</code>). Updates are batched to one <code>requestAnimationFrame</code> tick and <strong>the snapshot is deep-cloned via <code>JSON.parse(JSON.stringify(...))</code></strong> on each tick to defeat Lit's identity-based dirty check on nested arrays.</li>
+    </ul>
+    <p>Every <code>message_update</code> from <code>pi-agent-core</code> carries a full <code>AssistantMessage</code> snapshot — same protocol as the CLI. Stable history + isolated overlay means partial updates only repaint the in-flight bubble, not the whole transcript.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Single-hook tool renderer contract (vs CLI's two-hook) <span class="summary-tldr">— <code>render(params, result, isStreaming)</code>.</span></summary>
+  <div class="details-body">
+    <p>The CLI exposes <code>renderCall</code> + <code>renderResult</code> as two hooks. The web UI fuses them into one:</p>
+<pre><code>// package/src/tools/types.ts:9-15
+export interface ToolRenderer {
+  render(
+    params: unknown,
+    result: ToolResult | undefined,
+    isStreaming: boolean
+  ): ToolRenderResult;
+}</code></pre>
+    <p>Branching on argument presence and <code>isStreaming</code> drives a four-state visual (streaming-args → executing → success → error). Per-tool renderers: <code>BashRenderer.ts</code>, <code>DefaultRenderer.ts</code>, <code>CalculateRenderer.ts</code>, <code>GetCurrentTimeRenderer.ts</code>, plus auto-registering <code>javascript-repl.ts</code>, <code>extract-document.ts</code>, and the artifacts renderer (<code>isCustom: true</code>).</p>
+  </div>
+</details>
+
+<details>
+  <summary>Direct browser → LLM with surgical CORS proxying <span class="summary-tldr">— most providers go direct; only three need a proxy.</span></summary>
+  <div class="details-body">
+    <p><code>AgentInterface.setupSessionSubscription</code> (<code>AgentInterface.ts:138-151</code>) installs <code>createStreamFn</code> from <code>utils/proxy-utils.ts:127-139</code>. <code>shouldUseProxyForProvider</code> (<code>proxy-utils.ts:19-51</code>) only proxies:</p>
+    <ul>
+      <li><strong>Z-AI</strong></li>
+      <li><strong>OAuth Anthropic tokens</strong> (<code>sk-ant-oat-*</code>)</li>
+      <li><strong>OpenAI-Codex</strong></li>
+    </ul>
+    <p>Everything else — OpenAI, Google, Groq, Ollama, LM Studio, etc. — goes direct from the browser to the provider. Custom local providers are autodiscovered (<code>utils/model-discovery.ts:11-277</code>): LM Studio over WebSocket via <code>@lmstudio/sdk</code>, others via <code>/v1/models</code>.</p>
+  </div>
+</details>
+
+<details>
+  <summary>No central store, mini-lit in light DOM <span class="summary-tldr">— Tailwind classes propagate freely.</span></summary>
+  <div class="details-body">
+    <p>All components opt out of shadow DOM via <code>createRenderRoot() { return this }</code> — repeated across <code>Messages.ts:46</code>, <code>MessageList.ts:18</code>, <code>AgentInterface.ts:64</code>, etc. Lets Tailwind classes propagate through the component tree without per-shadow-root style injection.</p>
+    <p>Reactive primitive: <code>LitElement.requestUpdate()</code> + property decorators. Persistence: async accessor <code>Store</code> classes (<code>storage/store.ts:7-33</code>) over an <code>IndexedDBStorageBackend</code> (<code>storage/backends/indexeddb-storage-backend.ts:7-193</code>) that splits sessions into <code>sessions</code> + <code>sessions-metadata</code> for fast listing.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Reasoning rendering — simpler than CLI / opencode <span class="summary-tldr">— one collapsed block, shimmer while streaming.</span></summary>
+  <div class="details-body">
+    <p><code>package/src/components/ThinkingBlock.ts:6-43</code> is a single chevron-toggled block:</p>
+    <ul>
+      <li>Always starts collapsed.</li>
+      <li>No keyboard shortcut.</li>
+      <li>No title extraction.</li>
+      <li>While streaming, the "Thinking..." label gets a 2-second Tailwind shimmer: <code>app.css:47-58</code> defines the keyframe and applies <code>bg-clip-text text-transparent animate-shimmer</code>.</li>
+    </ul>
+    <p><strong>Animations are CSS-only</strong> — no JS-driven RAF ticks for spinners (just <code>animate-spin</code> for the tool spinner, <code>animate-pulse</code> for the streaming caret, the shimmer for thinking).</p>
+  </div>
+</details>
+
+<details>
+  <summary>Comparison to the CLI architecture <span class="summary-tldr">— shared events, different render strategies.</span></summary>
+  <div class="details-body">
+    <table>
+      <tr><th>Axis</th><th>CLI / TUI</th><th>Web UI</th></tr>
+      <tr><td>Streaming primitive</td><td>Full <code>AssistantMessage</code> snapshot per <code>message_update</code></td><td>Same — but deep-cloned and rAF-batched in <code>StreamingMessageContainer</code></td></tr>
+      <tr><td>Tool renderer contract</td><td>Two hooks: <code>renderCall</code>, <code>renderResult</code></td><td>One hook: <code>render(params, result, isStreaming)</code></td></tr>
+      <tr><td>Reasoning UI</td><td><code>ThinkingContent</code> rendered inline italic; <kbd>Ctrl+T</kbd> collapses</td><td>Single collapsed block; click to open; CSS shimmer while streaming</td></tr>
+      <tr><td>State store</td><td>Three layers (<code>Agent._state</code>, <code>AgentSession</code>, <code>InteractiveMode</code>)</td><td>None; Lit reactivity per component + IndexedDB persistence</td></tr>
+      <tr><td>Animations</td><td>80 ms braille spinner, bash 1 Hz elapsed timer (JS)</td><td>CSS-only: <code>animate-spin</code>, <code>animate-pulse</code>, shimmer keyframe</td></tr>
+      <tr><td>Provider transport</td><td>Stdin/stdout, env-loaded keys</td><td>Direct browser → provider, with CORS-proxy fallback for 3 providers</td></tr>
+    </table>
+  </div>
+</details>
+
+<aside class="callout callout--muted">
+  <strong>Static HTML export</strong> (alternate path). <code>pi --export &lt;session.jsonl&gt;</code> renders a finished session to a self-contained 1.6&nbsp;MB HTML for sharing / archival. Same theme variables and class names as the TUI. <a href="live-export.html">Open the full export →</a>
+</aside>
+
+<figure>
+  <img src="screen-overview.png" alt="pi static HTML export — overview screenshot">
+  <figcaption>pi's <code>--export</code> HTML (separate from the live web UI above): a two-pane layout with a turn-by-turn sidebar tree (left, listing every <code>tree-role-user</code> / <code>tree-role-assistant</code> / <code>tree-role-tool</code> span) and a scrollable transcript pane (right, with session header, user prompts, assistant text, and tool boxes).</figcaption>
+</figure>
+
+<details>
+  <summary>Class taxonomy observed in the live export <span class="summary-tldr">— the exact CSS selectors that pin every part of the UI.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li><strong>Sidebar tree</strong>: <code>tree-role-user</code>, <code>tree-role-assistant</code>, <code>tree-role-tool</code>, <code>tree-status</code> (724 items in the fixture).</li>
+      <li><strong>Main pane messages</strong>: <code>user-message</code>, <code>assistant-message</code>, <code>assistant-text</code>, <code>message-timestamp</code>.</li>
+      <li><strong>Tool execution blocks</strong>: <code>tool-execution</code>, <code>tool-header</code>, <code>tool-name</code>, <code>tool-path</code>, <code>tool-output</code>, <code>tool-command</code>, <code>tool-diff</code>.</li>
+      <li><strong>Diff colouring</strong>: <code>diff-added</code>, <code>diff-removed</code>, <code>diff-context</code>.</li>
+      <li><strong>Reasoning</strong>: <code>thinking-block</code>, <code>thinking-text</code>, <code>thinking-collapsed</code>. The "Toggle thinking" button at the top swaps which of the inner two divs is <code>display:block</code>.</li>
+    </ul>
+    <p>Fixture counts: <strong>391 tool executions</strong>, <strong>3 thinking blocks</strong>, <strong>2&thinsp;917 diff lines</strong> in one session. The rendered document is 152,911&nbsp;px tall — no virtualisation, just one long static HTML.</p>
+  </div>
+</details>
+
+<div class="toc">
+  <h3>On this page</h3>
+  <ol>
+    <li><a href="#headline">Top three findings</a></li>
+    <li><a href="#events">AgentEvent protocol</a></li>
+    <li><a href="#content">Content types in an AssistantMessage</a></li>
+    <li><a href="#tools">Tool rendering (two hooks per tool)</a></li>
+    <li><a href="#reasoning">Reasoning rendering</a></li>
+    <li><a href="#state">State layers</a></li>
+    <li><a href="#animations">Animations / spinners</a></li>
+    <li><a href="#parallel">Sub-agents and parallelism</a></li>
+    <li><a href="#history">Conversation history</a></li>
+    <li><a href="#export">Static HTML export</a></li>
+  </ol>
+</div>
+
+<section id="headline">
+<h2>1. Top three findings</h2>
+
+<ol>
+  <li><strong>Unified event protocol drives all surfaces.</strong> <code>AgentEvent</code> (<code>packages/agent/src/types.ts:403-418</code>) is a tagged-union stream of <code>agent_start | turn_start | message_{start,update,end} | tool_execution_{start,update,end} | turn_end | agent_end</code>. The TUI, the JSONL mode, the RPC mode, and the HTML exporter all consume the <em>same</em> events. Every <code>message_update</code> carries a full <code>partial: AssistantMessage</code> snapshot, so consumers always re-paint from the snapshot — no token-level diff tracking required.</li>
+  <li><strong>Tools are first-class UI citizens with two render hooks per tool.</strong> Every tool definition exposes <code>renderCall(args, theme, ctx)</code> and <code>renderResult(result, options, theme, ctx)</code> (see <code>packages/coding-agent/src/core/tools/bash.ts:405-439</code>, <code>edit.ts:367-430</code>). The shared <code>ToolExecutionComponent</code> (<code>packages/coding-agent/src/modes/interactive/components/tool-execution.ts</code>) keeps a per-tool <code>state</code> bag between invocations so renderers can mutate the previous frame's component tree instead of allocating new ones — that's why streaming bash output and growing edit diffs don't flicker. Background color encodes status (<code>toolPendingBg | toolSuccessBg | toolErrorBg</code>, <code>tool-execution.ts:228-234</code>). The <code>edit</code> tool kicks off an async on-disk diff preview the moment streamed args complete (<code>edit.ts:381-390</code>) so the user sees the would-be change before execution even starts.</li>
+  <li><strong>Reasoning has a dedicated content type that ships alongside text and tool calls.</strong> <code>ThinkingContent</code> (<code>packages/ai/src/types.ts:230-238</code>) appears in the same <code>AssistantMessage.content</code> array as text / toolCall blocks. The UI renders it italic in a <code>thinkingText</code> color via <code>AssistantMessageComponent.updateContent</code> (<code>assistant-message.ts:73-122</code>); <kbd>Ctrl+T</kbd> collapses it to a single "Thinking..." label that's customizable per-extension. Spacing between thinking and the next block is conditional — no blank row before tool boxes, blank row before text — preventing visual stutter (<code>assistant-message.ts:97-119</code>).</li>
+</ol>
+</section>
+
+<section id="events">
+<h2>2. AgentEvent protocol</h2>
+
+<p><code>packages/agent/src/types.ts:403-418</code>:</p>
+
+<table>
+  <tr><th>Variant</th><th>Meaning</th></tr>
+  <tr><td><code>agent_start</code></td><td>Agent harness booted.</td></tr>
+  <tr><td><code>turn_start</code></td><td>New user → assistant turn beginning.</td></tr>
+  <tr><td><code>message_start</code></td><td>Assistant message slot opened.</td></tr>
+  <tr><td><code>message_update</code></td><td><code>{ partial: AssistantMessage }</code> — full snapshot per change.</td></tr>
+  <tr><td><code>message_end</code></td><td>Assistant message finalised.</td></tr>
+  <tr><td><code>tool_execution_start</code></td><td><code>{ toolCallId, name, args }</code></td></tr>
+  <tr><td><code>tool_execution_update</code></td><td><code>{ toolCallId, partial }</code></td></tr>
+  <tr><td><code>tool_execution_end</code></td><td><code>{ toolCallId, result | error }</code></td></tr>
+  <tr><td><code>turn_end</code></td><td>Turn complete: <code>status: completed | aborted | error</code></td></tr>
+  <tr><td><code>agent_end</code></td><td>Harness shutting down.</td></tr>
+</table>
+
+<div class="callout">
+  <strong>Architectural choice:</strong> snapshots over deltas. Every <code>message_update</code> contains the complete current <code>AssistantMessage</code>. Renderers compare the new snapshot to the rendered tree and reconcile — no per-token append logic, no envelope state to maintain in the client.
+</div>
+</section>
+
+<section id="content">
+<h2>3. Content types within an AssistantMessage</h2>
+
+<p><code>packages/ai/src/types.ts</code>:</p>
+
+<ul>
+  <li><code>TextContent</code> — <code>{ type: "text", text }</code></li>
+  <li><code>ThinkingContent</code> (line 230-238) — <code>{ type: "thinking", text, signature? }</code></li>
+  <li><code>ToolCallContent</code> — <code>{ type: "tool_call", id, name, input }</code></li>
+  <li><code>ImageContent</code>, <code>RedactedThinkingContent</code></li>
+</ul>
+
+<p>The UI iterates <code>message.content[]</code> and emits one renderer per block. The same array carries reasoning, text, and tool calls — order is preserved exactly as emitted by the model.</p>
+</section>
+
+<section id="tools">
+<h2>4. Tool rendering — two hooks per tool</h2>
+
+<p>Every tool definition exposes:</p>
+
+<pre><code>renderCall(args, theme, ctx)       // "in flight" rendering
+renderResult(result, options, theme, ctx)  // post-execution rendering</code></pre>
+
+<p>Examples: <code>packages/coding-agent/src/core/tools/bash.ts:405-439</code>, <code>edit.ts:367-430</code>.</p>
+
+<p>The shared <code>ToolExecutionComponent</code> (<code>packages/coding-agent/src/modes/interactive/components/tool-execution.ts</code>) keeps a per-tool <code>state</code> bag between invocations so renderers can <em>mutate the previous frame's component tree</em> instead of allocating new ones. Streaming bash output and growing edit diffs don't flicker.</p>
+
+<h3>Tool state encoding</h3>
+
+<p>States cycle through a 3-colour background scheme (<code>tool-execution.ts:228-234</code>):</p>
+
+<table>
+  <tr><th>State</th><th>Background</th><th>CSS class (HTML export)</th></tr>
+  <tr><td>Pending / executing</td><td><code>toolPendingBg</code></td><td><code>.tool-execution.pending</code></td></tr>
+  <tr><td>Success</td><td><code>toolSuccessBg</code></td><td><code>.tool-execution.success</code></td></tr>
+  <tr><td>Error</td><td><code>toolErrorBg</code></td><td><code>.tool-execution.error</code></td></tr>
+</table>
+
+<p>Notable detail: the <code>edit</code> tool kicks off an async on-disk diff preview the moment streamed args complete (<code>edit.ts:381-390</code>) — the user sees the would-be change <em>before</em> the tool executes.</p>
+</section>
+
+<section id="reasoning">
+<h2>5. Reasoning rendering</h2>
+
+<p><code>ThinkingContent</code> (<code>packages/ai/src/types.ts:230-238</code>) appears in the same <code>AssistantMessage.content</code> array as text / toolCall blocks. The UI renders it italic in a <code>thinkingText</code> color via <code>AssistantMessageComponent.updateContent</code> (<code>assistant-message.ts:73-122</code>).</p>
+
+<ul>
+  <li><kbd>Ctrl+T</kbd> collapses to a single "Thinking..." label.</li>
+  <li>Collapsed label is customizable per-extension.</li>
+  <li>Spacing between thinking and the next block is conditional — <strong>no</strong> blank row before tool boxes; blank row <em>before</em> text — preventing visual stutter (<code>assistant-message.ts:97-119</code>).</li>
+</ul>
+</section>
+
+<section id="state">
+<h2>6. State layers</h2>
+
+<p>No central store. State lives in three layers:</p>
+
+<table>
+  <tr><th>Layer</th><th>Location</th><th>Role</th></tr>
+  <tr><td>Canonical transcript</td><td><code>Agent._state</code> (<code>agent.ts:509-547</code>)</td><td>Source of truth for messages, parts, tool results.</td></tr>
+  <tr><td>Persistence + events</td><td><code>AgentSession</code> (<code>agent-session.ts:451</code>)</td><td>Writes to JSONL, emits <code>AgentEvent</code>s.</td></tr>
+  <tr><td>UI handles</td><td><code>InteractiveMode</code> class fields (<code>interactive-mode.ts:240-280</code>)</td><td>Shadows component refs for in-place mutation.</td></tr>
+</table>
+
+<p>Re-renders are coalesced via <code>TUI.requestRender()</code> → <code>process.nextTick</code> → throttled <code>setTimeout</code> (<code>packages/tui/src/tui.ts:495-541</code>).</p>
+</section>
+
+<section id="animations">
+<h2>7. Animations / spinners</h2>
+
+<ul>
+  <li>80&nbsp;ms braille spinner default (<code>packages/tui/src/components/loader.ts:11-12</code>).</li>
+  <li>The bash tool drives its own per-second elapsed-timer redraw via <code>setInterval</code> (<code>bash.ts:417-419</code>) — useful for long-running commands.</li>
+  <li>Tool-box background colour transitions encode state, not motion.</li>
+</ul>
+</section>
+
+<section id="parallel">
+<h2>8. Sub-agents and parallelism</h2>
+
+<ul>
+  <li><strong>No sub-agents in core.</strong> <code>README.md:476</code> calls them an explicit non-goal — use extensions, tmux, or third-party packages.</li>
+  <li><strong>Parallel tool calls are supported</strong> (<code>agent-loop.ts:451</code>), emit <code>tool_execution_end</code> in completion order.</li>
+  <li>The UI keys pending tools by <code>toolCallId</code> in a <code>Map</code> (<code>interactive-mode.ts:280</code>) so concurrent tool boxes update independently.</li>
+</ul>
+</section>
+
+<section id="history">
+<h2>9. Conversation history</h2>
+
+<p>Conversation history is a <strong>JSONL tree</strong> (<code>id</code> + <code>parentId</code> per entry) supporting in-place branching, forking, cloning, and lossy compaction — see <code>packages/coding-agent/README.md:230-272</code> for the user-facing model and <code>packages/coding-agent/src/core/session-manager.ts</code> for the file format.</p>
+</section>
+
+<section id="export">
+<h2>10. Static HTML export — the only browser-renderable artefact</h2>
+
+<p>Template: <code>packages/coding-agent/src/core/export-html/template.html</code> (self-contained, no network).</p>
+
+<ul>
+  <li>Theme + class semantics: <code>template.css:343-589</code>.</li>
+  <li>JS dispatch (turn navigation, block expand/collapse): <code>template.js:1192-1276</code>.</li>
+  <li>CSS classes mirror the TUI:
+    <ul>
+      <li><code>.tool-execution.pending | .success | .error</code></li>
+      <li><code>.thinking-block</code> (collapsible)</li>
+      <li><code>.diff-added | .diff-removed | .diff-context</code></li>
+      <li><code>.message-user | .message-assistant</code></li>
+    </ul>
+  </li>
+</ul>
+
+<p>This is a <em>post-hoc replay</em>, not an interactive UI.</p>
+</section>
+
+<section>
+<h2>Artifacts &amp; how to unblock the live walkthrough</h2>
+
+<ul>
+  <li><a href="../../pi/FINDINGS.md">FINDINGS.md</a> — full raw notes.</li>
+  <li><a href="../../pi/SETUP.md">SETUP.md</a> — clone / install / build / run instructions.</li>
+  <li><a href="../../pi/BLOCKERS.md">BLOCKERS.md</a> — three options for unblocking the live capture.</li>
+  <li><a href="../../pi/SERVER.md">SERVER.md</a> — explicit note that no server is or can be running.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/pi/repo/</span> — cloned and built, ready to run.</li>
+</ul>
+
+<p>To make the live walkthrough happen, supply an LLM API key and decide between (a) live terminal recording with asciinema, (b) record + export to static HTML for Playwriter-driven capture, or (c) leave the section as source-only.</p>
+</section>
+
+<p class="foot"><a href="../index.html">← Back to executive summary</a></p>
+
+</div>
+</body>
+</html>

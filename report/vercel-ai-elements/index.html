@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vercel AI Elements — Agent UI Deep Dive</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+
+<p class="crumbs"><a href="../index.html">← Executive summary</a> &nbsp;/&nbsp; Vercel AI Elements</p>
+
+<header class="page-header">
+  <p class="eyebrow">React component registry · Open source · Apache-2.0</p>
+  <h1>Vercel AI Elements</h1>
+  <p class="lede">A shadcn-style copy-paste component registry for AI UIs. 47 React components across Chatbot / Code / Voice / Workflow / Utilities. Distribution is a 59-line CLI that delegates to <code>npx shadcn add</code>; there is no runtime npm package. Zero Vercel-infrastructure coupling.</p>
+</header>
+
+<aside class="callout callout--muted">
+  <strong>Mental model:</strong> AI Elements is "shadcn/ui-for-AI." It sits <em>on top of</em> shadcn/ui (composes <code>Button</code>, <code>Collapsible</code>, <code>Tooltip</code>, etc.) and is typed against the AI SDK's <code>UIMessage</code> / <code>ToolUIPart</code>. Source cloned (depth 1) to <span class="path">/Users/adambossy/code/agent_ui/vercel-ai-elements/repo/</span>.
+</aside>
+
+<div class="toc">
+  <h3>On this page</h3>
+  <ol>
+    <li><a href="#distribution">Distribution model</a></li>
+    <li><a href="#catalog">Component catalog</a></li>
+    <li><a href="#anatomy">Per-component anatomy</a></li>
+    <li><a href="#data">Backing data model</a></li>
+    <li><a href="#stack">Stack assumptions</a></li>
+    <li><a href="#coupling">Vercel coupling</a></li>
+    <li><a href="#independent">Independent use</a></li>
+    <li><a href="#shadcn">Comparison to shadcn/ui</a></li>
+    <li><a href="#gaps">What's missing</a></li>
+  </ol>
+</div>
+
+<section id="distribution">
+<h2>1. Distribution model</h2>
+
+<div class="callout">
+  <strong>Copy-paste-via-CLI, shadcn-style.</strong> There is no <code>@vercel/ai-elements</code> runtime import. The npm package <code>ai-elements</code> (v1.9.0) is a 59-line CLI — <code>packages/cli/index.js</code> literally shells out to <code>shadcn@latest add &lt;url&gt;</code>. Components are served as a shadcn registry from <code>https://elements.ai-sdk.dev/api/registry/{name}.json</code>.
+</div>
+
+<pre><code># Install all 47 components:
+npx ai-elements@latest
+
+# One component (delegates to shadcn):
+npx ai-elements@latest add conversation
+
+# Equivalent direct call:
+npx shadcn@latest add https://elements.ai-sdk.dev/api/registry/conversation.json</code></pre>
+
+<p><code>shadcn add</code> writes the <code>.tsx</code> to <code>&lt;aliases.components&gt;/ai-elements/&lt;name&gt;.tsx</code> (default <code>@/components/ai-elements/</code>), installs runtime npm deps declared in each registry entry (e.g. <code>conversation.json</code> requires <code>ai</code>, <code>lucide-react</code>, <code>use-stick-to-bottom</code>; heavier ones pull <code>streamdown</code>, <code>shiki</code>, <code>@xyflow/react</code>, <code>media-chrome</code>, <code>motion</code>, <code>@rive-app/react-webgl2</code>, <code>react-jsx-parser</code>, <code>tokenlens</code>, <code>katex</code>, <code>ansi-to-react</code>), and installs shadcn registry deps if missing.</p>
+
+<p><strong>Prereqs per docs:</strong> Node 18+, existing Next.js app, AI SDK installed, <code>shadcn init</code> already run, Tailwind in <strong>CSS Variables mode</strong> (hard requirement — components reference <code>--muted-foreground</code>, <code>--secondary</code>, <code>--ring</code>).</p>
+</section>
+
+<section id="catalog">
+<h2>2. Component catalog</h2>
+
+<p>47 components across 4 categories + utilities. Verified by directory listing of <code>packages/elements/src/</code>.</p>
+
+<details open>
+  <summary>Chatbot (18) <span class="summary-tldr">— the agent UX core.</span></summary>
+  <div class="details-body">
+    <table>
+      <tr><th>Component</th><th>Purpose</th></tr>
+      <tr><td><code>Conversation</code></td><td>Stick-to-bottom scrollable container. Sub-parts: <code>ConversationContent</code>, <code>ConversationEmptyState</code>, <code>ConversationScrollButton</code>, <code>ConversationDownload</code> (+ <code>messagesToMarkdown</code> util).</td></tr>
+      <tr><td><code>Message</code></td><td>Per-turn row, user vs assistant styling, branching, actions. Sub-parts: <code>MessageContent</code>, <code>MessageResponse</code>, <code>MessageActions</code>/<code>MessageAction</code>, <code>MessageBranch*</code>, <code>MessageToolbar</code>.</td></tr>
+      <tr><td><code>Reasoning</code></td><td>Collapsible "thinking…" panel. Auto-opens on stream, auto-closes 1 s after stream ends, tracks duration.</td></tr>
+      <tr><td><code>Tool</code></td><td>Collapsible call card with status badge, parameters, result/error. Consumes <code>ToolUIPart</code> / <code>DynamicToolUIPart</code>.</td></tr>
+      <tr><td><code>Attachments</code></td><td>Grid/inline/list variants over <code>FileUIPart</code> / <code>SourceDocumentUIPart</code>.</td></tr>
+      <tr><td><code>ChainOfThought</code></td><td>Step-by-step plan with collapsible nested sections (more persistent than <code>Reasoning</code>).</td></tr>
+      <tr><td><code>Checkpoint</code></td><td>Named conversation snapshot pill.</td></tr>
+      <tr><td><code>Confirmation</code></td><td>Approve/reject HITL UI driven by tool-approval states.</td></tr>
+      <tr><td><code>Context</code></td><td>Token-usage progress bar (<code>LanguageModelUsage</code> + <code>tokenlens</code> pricing).</td></tr>
+      <tr><td><code>InlineCitation</code></td><td>Numbered ref badge + carousel hover-card.</td></tr>
+      <tr><td><code>ModelSelector</code></td><td>Command/dialog model picker.</td></tr>
+      <tr><td><code>Plan</code></td><td>Multi-card plan with collapsible step detail.</td></tr>
+      <tr><td><code>PromptInput</code></td><td>Composer: textarea + attachments + model dropdown + submit/stop.</td></tr>
+      <tr><td><code>Queue</code></td><td>Pending-prompts list.</td></tr>
+      <tr><td><code>Shimmer</code></td><td>Loading-text shimmer (<code>motion/react</code>).</td></tr>
+      <tr><td><code>Sources</code></td><td>"Used N sources" collapsible footer.</td></tr>
+      <tr><td><code>Suggestion</code> / <code>Suggestions</code></td><td>Horizontal chip rail of follow-up prompts.</td></tr>
+      <tr><td><code>Task</code></td><td>Tool/task tree row (e.g. file search). Sub-part: <code>TaskItemFile</code>.</td></tr>
+    </table>
+  </div>
+</details>
+
+<details>
+  <summary>Code (15)</summary>
+  <div class="details-body">
+    <p><code>Agent</code> (accordion of tool descriptions), <code>Artifact</code> (Claude/v0-style side panel container), <code>CodeBlock</code> (Shiki + copy + theme), <code>Commit</code> (git stats card), <code>EnvironmentVariables</code> (masked kv table), <code>FileTree</code>, <code>JsxPreview</code> (live JSX via <code>react-jsx-parser</code>), <code>PackageInfo</code> (dep-change chips), <code>Sandbox</code> (tabbed runner consuming <code>ToolUIPart</code>), <code>SchemaDisplay</code> (HTTP schema viewer), <code>Snippet</code> (one-line copyable), <code>StackTrace</code>, <code>Terminal</code> (<code>ansi-to-react</code>), <code>TestResults</code>, <code>WebPreview</code> (iframe + URL bar).</p>
+  </div>
+</details>
+
+<details>
+  <summary>Voice (6)</summary>
+  <div class="details-body">
+    <p><code>AudioPlayer</code> (media-chrome wired to <code>Experimental_SpeechResult</code>), <code>MicSelector</code>, <code>Persona</code> (Rive WebGL avatar), <code>SpeechInput</code> (Web Speech API push-to-talk), <code>Transcription</code> (time-synced over <code>Experimental_TranscriptionResult</code>), <code>VoiceSelector</code>.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Workflow (7) — wrap <code>@xyflow/react</code></summary>
+  <div class="details-body">
+    <p><code>Canvas</code>, <code>Node</code>, <code>Edge</code>, <code>Connection</code>, <code>Controls</code>, <code>Toolbar</code>, <code>Panel</code>.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Utilities (2)</summary>
+  <div class="details-body">
+    <p><code>Image</code> (renders AI SDK <code>Experimental_GeneratedImage</code> base64), <code>OpenInChat</code> (deep-link dropdown to ChatGPT/Claude/Grok/etc.).</p>
+  </div>
+</details>
+</section>
+
+<section id="anatomy">
+<h2>3. Per-component anatomy</h2>
+
+<details open>
+  <summary><code>Conversation</code> — <code>packages/elements/src/conversation.tsx</code></summary>
+  <div class="details-body">
+    <ul>
+      <li><strong>Wraps</strong> <code>use-stick-to-bottom</code>'s <code>StickToBottom</code>. All auto-scroll logic lives there.</li>
+      <li><strong>Props:</strong> <code>ComponentProps&lt;typeof StickToBottom&gt;</code>, defaults <code>initial="smooth"</code>, <code>resize="smooth"</code>, <code>role="log"</code>.</li>
+      <li><strong>Sub-components:</strong>
+        <ul>
+          <li><code>ConversationContent</code> — <code>flex flex-col gap-8 p-4</code>.</li>
+          <li><code>ConversationEmptyState</code> — defaults "No messages yet" / "Start a conversation to see messages here".</li>
+          <li><code>ConversationScrollButton</code> — renders only when <code>!isAtBottom</code> (from <code>useStickToBottomContext</code>).</li>
+          <li><code>ConversationDownload</code> — builds Markdown via <code>messagesToMarkdown</code>, triggers a Blob download.</li>
+        </ul>
+      </li>
+      <li><strong>Streaming:</strong> doesn't parse stream events; auto-scrolls smoothly as children mount/resize.</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary><code>Message</code> — <code>packages/elements/src/message.tsx</code></summary>
+  <div class="details-body">
+    <ul>
+      <li><strong>Props:</strong> <code>{ from: UIMessage["role"] }</code>. Maps to a marker class (<code>is-user</code> or <code>is-assistant</code>) driving Tailwind <code>group-[.is-user]:…</code> selectors.</li>
+      <li><strong>Sub-components:</strong>
+        <ul>
+          <li><code>MessageContent</code> — bubble container. User: <code>rounded-lg bg-secondary px-4 py-3</code>. Assistant: plain <code>text-foreground</code>.</li>
+          <li><code>MessageResponse</code> — memoised wrapper around <strong><code>Streamdown</code></strong> (Vercel's incremental-Markdown renderer) with code/math/mermaid/CJK plugins.</li>
+          <li><code>MessageBranch*</code> set — paginate alternate completions via React context, selector reads "N of M".</li>
+          <li><code>MessageActions</code> + <code>MessageToolbar</code> — ghost-icon button row.</li>
+        </ul>
+      </li>
+      <li><strong>Streaming:</strong> accepts partial markdown via <code>MessageResponse</code> (forwards <code>isAnimating</code>).</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary><code>Reasoning</code> — <code>packages/elements/src/reasoning.tsx</code></summary>
+  <div class="details-body">
+    <ul>
+      <li><strong>Props:</strong> Collapsible props + <code>isStreaming?</code>, <code>open?</code>, <code>defaultOpen?</code>, <code>onOpenChange?</code>, <code>duration?</code>.</li>
+      <li><strong>Streaming behaviour (explicit in source):</strong>
+        <ol>
+          <li>On <code>isStreaming = true</code>, auto-opens unless <code>defaultOpen={false}</code> was explicitly set.</li>
+          <li>Records <code>startTimeRef</code> on first tick; on stream end, sets <code>duration = Math.ceil((Date.now() - start)/1000)</code>.</li>
+          <li>After streaming ends, auto-closes after <code>AUTO_CLOSE_DELAY = 1000ms</code> (one shot — won't auto-close again if user reopens).</li>
+        </ol>
+      </li>
+      <li><strong>Default trigger:</strong> <code>&lt;Shimmer&gt;Thinking...&lt;/Shimmer&gt;</code> while streaming, "Thought for N seconds" after.</li>
+      <li><strong>Body:</strong> <code>&lt;Streamdown&gt;</code>, same plugin set.</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary><code>Tool</code> — <code>packages/elements/src/tool.tsx</code></summary>
+  <div class="details-body">
+    <p><strong>Status taxonomy</strong> (hard-coded icons + labels driven by <code>ToolUIPart["state"]</code>):</p>
+    <table>
+      <tr><th>State</th><th>Label</th><th>Tone</th></tr>
+      <tr><td><code>input-streaming</code></td><td>Pending</td><td>neutral</td></tr>
+      <tr><td><code>input-available</code></td><td>Running</td><td>pulsing clock</td></tr>
+      <tr><td><code>output-available</code></td><td>Completed</td><td><span class="tag tag--good">green</span></td></tr>
+      <tr><td><code>output-error</code></td><td>Error</td><td><span class="tag tag--bad">red</span></td></tr>
+      <tr><td><code>output-denied</code></td><td>Denied</td><td>orange</td></tr>
+      <tr><td><code>approval-requested</code></td><td>Awaiting Approval</td><td>yellow</td></tr>
+      <tr><td><code>approval-responded</code></td><td>Responded</td><td>blue</td></tr>
+    </table>
+    <p><strong>Sub-components:</strong> <code>ToolHeader</code> (wrench icon + name + status badge), <code>ToolContent</code> (animated CollapsibleContent), <code>ToolInput</code> ("Parameters" + JSON CodeBlock), <code>ToolOutput</code> (objects → JSON, strings → CodeBlock, ReactElements → rendered directly; error styling <code>bg-destructive/10 text-destructive</code>).</p>
+    <p><strong>Streaming:</strong> state-driven, not text-streaming — re-renders as the AI SDK transitions the part through <code>input-streaming → input-available → output-available|error</code>.</p>
+  </div>
+</details>
+</section>
+
+<section id="data">
+<h2>4. Backing data model</h2>
+
+<p>The canonical message shape is <strong><code>UIMessage</code> from the <code>ai</code> package (AI SDK v6)</strong>. Components import directly: <code>message.tsx</code> / <code>conversation.tsx</code> use <code>UIMessage</code>; <code>tool.tsx</code> uses <code>ToolUIPart</code>/<code>DynamicToolUIPart</code>; <code>attachments.tsx</code> uses <code>FileUIPart</code>/<code>SourceDocumentUIPart</code>; <code>context.tsx</code> uses <code>LanguageModelUsage</code>; <code>image.tsx</code> uses <code>Experimental_GeneratedImage</code>; <code>audio-player.tsx</code>/<code>transcription.tsx</code> use the experimental speech types.</p>
+
+<p>A <code>UIMessage</code> is <code>{ role, parts: Part[] }</code> where <code>Part</code> is a discriminated union (<code>text</code>, <code>tool-&lt;name&gt;</code>, <code>dynamic-tool</code>, <code>source-document</code>, <code>file</code>, …). Components map specific part types to specific renderers — there is no global renderer dispatch.</p>
+
+<div class="callout callout--good">
+  <strong>No global store, no <code>useChat</code> coupling.</strong> Nothing in the elements package imports <code>useChat</code>. The README example uses <code>useChat()</code> from <code>@ai-sdk/react</code>, but the components only consume <code>messages</code> as a prop. <code>@ai-sdk/react</code> lives in <code>devDependencies</code>, not <code>dependencies</code>. <strong>You can feed components from any source.</strong>
+</div>
+</section>
+
+<section id="stack">
+<h2>5. Stack assumptions</h2>
+
+<ul>
+  <li>React 19.2 (per <code>packages/elements/package.json</code>).</li>
+  <li>Tailwind CSS in <strong>CSS Variables mode</strong> — required.</li>
+  <li><strong>shadcn/ui must be initialised first.</strong> Every component imports from <code>@repo/shadcn-ui/components/ui/*</code> in the monorepo; the registry rewrites those imports to your local shadcn aliases (<code>@/components/ui/*</code>).</li>
+  <li>Next.js is the documented happy path, but the only Next-specific code is <code>"use client";</code> at the top of nearly every file — a no-op outside an RSC context. <strong>No <code>next/*</code> import anywhere in <code>packages/elements/src/</code>.</strong></li>
+  <li><strong>Not Server Components.</strong> Nearly every component is <code>"use client"</code> (Radix portals, refs, state machines, <code>motion/react</code>, Rive WebGL, etc.). Streaming is handled client-side via <code>streamdown</code> + AI SDK part updates.</li>
+</ul>
+</section>
+
+<section id="coupling">
+<h2>6. Vercel coupling</h2>
+
+<div class="callout callout--good">
+  <strong>The elements have no Vercel runtime coupling.</strong>
+  <ul>
+    <li>No <code>@vercel/*</code> imports in any component file.</li>
+    <li>No telemetry, analytics, or hosted-service callbacks.</li>
+    <li>The registry endpoint (<code>elements.ai-sdk.dev</code>) is fetched only at install time. Once components are in your repo, the endpoint is irrelevant.</li>
+    <li>The docs <em>recommend</em> (don't require) Vercel AI Gateway via <code>AI_GATEWAY_API_KEY</code> — that's an AI SDK concern, not an Elements concern.</li>
+    <li>Strongest coupling is via AI SDK type names (<code>UIMessage</code>, <code>ToolUIPart</code>, …) — but the AI SDK is BYO-host.</li>
+    <li>License: Apache-2.0.</li>
+  </ul>
+  <p>A self-hosted Vite + your-own-API stack runs AI Elements with zero Vercel infrastructure.</p>
+</div>
+</section>
+
+<section id="independent">
+<h2>7. Independent use</h2>
+
+<details open>
+  <summary>Minimum Vite + React integration <span class="summary-tldr">— five steps.</span></summary>
+  <div class="details-body">
+    <ol>
+      <li><code>npm create vite@latest</code> (React + TS), set up Tailwind, then <code>npx shadcn@latest init</code> (pick CSS Variables mode).</li>
+      <li><code>npx shadcn@latest add https://elements.ai-sdk.dev/api/registry/conversation.json</code> and <code>…/message.json</code> — files land in <code>src/components/ai-elements/</code>, npm deps install automatically.</li>
+      <li>Wire a chat source: install <code>@ai-sdk/react</code> and use <code>useChat()</code> against your own <code>/api/chat</code>, or hand-roll a <code>messages</code> state array.</li>
+      <li>The <code>"use client"</code> directive is harmless in Vite (unused string literal). No further changes needed for the chatbot subset.</li>
+    </ol>
+    <p><strong>Caveats:</strong> <code>Persona</code> needs WebGL2 and a Rive <code>.riv</code> asset; workflow components pull <code>@xyflow/react</code> and its CSS; <code>Sandbox</code>/<code>WebPreview</code> use iframes (mind CSP).</p>
+  </div>
+</details>
+
+<details>
+  <summary>Non-React (Svelte/Solid/Vue) — not supported.</summary>
+  <div class="details-body">
+    <p>All files are <code>.tsx</code>, every component is a React function component using React state/effects/refs/context, and many wrap Radix React primitives. There is no headless / primitive layer to reuse. Streamdown is React-only too.</p>
+  </div>
+</details>
+</section>
+
+<section id="shadcn">
+<h2>8. Comparison to shadcn/ui</h2>
+
+<table>
+  <tr><th>Axis</th><th>shadcn/ui</th><th>AI Elements</th></tr>
+  <tr><td>Distribution</td><td>Custom registry + <code>shadcn add</code></td><td>Custom registry + thin CLI delegating to <code>shadcn add</code></td></tr>
+  <tr><td>Source ownership</td><td>Copies <code>.tsx</code> into your repo</td><td>Same</td></tr>
+  <tr><td>Runtime npm package</td><td>None</td><td>None (<code>ai-elements</code> is the CLI only)</td></tr>
+  <tr><td>Styling</td><td>Tailwind + CSS Variables</td><td>Tailwind + CSS Variables (inherits your shadcn tokens)</td></tr>
+  <tr><td>Primitive layer</td><td>Radix UI</td><td>Radix UI <em>via</em> shadcn/ui (depends on shadcn being installed)</td></tr>
+  <tr><td>Customisation</td><td>Edit the file</td><td>Edit the file</td></tr>
+  <tr><td>Theming hook</td><td>shadcn CSS variables</td><td>Same — references <code>--muted-foreground</code>, <code>--secondary</code>, <code>--ring</code>, …</td></tr>
+  <tr><td>Re-add behaviour</td><td>Overwrites</td><td>Overwrites</td></tr>
+</table>
+
+<p>Key difference: AI Elements <strong>builds a layer above</strong> shadcn/ui (composes shadcn primitives rather than introducing new ones) and <strong>types are explicitly bound to the AI SDK</strong> (<code>UIMessage</code> et al.). shadcn/ui itself is data-agnostic.</p>
+</section>
+
+<section id="gaps">
+<h2>9. What's missing</h2>
+
+<p>After walking the 47 components:</p>
+<ul>
+  <li>Sidebar / conversation list (no "list of past chats" component).</li>
+  <li>User avatar / identity per message — <code>Persona</code> is an animated agent face, not a user avatar/initials chip.</li>
+  <li>First-class reaction/feedback affordance — <code>MessageActions</code> is a generic icon-button row.</li>
+  <li>Inline edit-and-resubmit for user messages.</li>
+  <li>Live token-rate / streaming-progress meter beyond static <code>Context</code> usage bar.</li>
+  <li>Diff viewer — <code>Commit</code> shows +/- stats but no side-by-side or inline diff.</li>
+  <li>Notifications / toast bridge for tool errors.</li>
+  <li>i18n / RTL helpers — CJK markdown plugin is wired in, but layout is LTR-only (<code>ml-auto</code> for user bubbles).</li>
+  <li>Built-in keyboard shortcuts for <code>PromptInput</code> (Cmd+Enter etc. — wire your own).</li>
+  <li>Server-Component-friendly variants — everything is client-side.</li>
+  <li>Root <code>UIMessage.parts</code> renderer dispatch — you still write the part-type switch yourself in user code.</li>
+</ul>
+
+<p>What's present that one might not expect: file attachments with media-category icons, human-in-the-loop tool approvals (<code>Confirmation</code>), voice I/O (<code>SpeechInput</code>, <code>Transcription</code>, <code>AudioPlayer</code>, mic/voice pickers, Rive <code>Persona</code>), a full React Flow-based workflow canvas, JSX live-preview, an ANSI terminal, a token-usage gauge with pricing via <code>tokenlens</code>, and "Open in ChatGPT/Claude/Grok" deep-links (<code>OpenInChat</code>).</p>
+</section>
+
+<section>
+<h2>Artifacts</h2>
+<ul>
+  <li><a href="../../vercel-ai-elements/FINDINGS.md">FINDINGS.md</a> — full raw notes.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/vercel-ai-elements/repo/</span> — cloned monorepo (cli + elements + shadcn-ui + docs).</li>
+</ul>
+</section>
+
+<p class="foot"><a href="../index.html">← Back to executive summary</a></p>
+
+</div>
+</body>
+</html>

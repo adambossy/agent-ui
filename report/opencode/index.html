@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sst/opencode — Agent UI Deep Dive</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+
+<p class="crumbs"><a href="../index.html">← Executive summary</a> &nbsp;/&nbsp; sst/opencode</p>
+
+<header class="page-header">
+  <p class="eyebrow">TUI · Open source · TypeScript + SolidJS + OpenTUI</p>
+  <h1>sst/opencode</h1>
+  <p class="lede">An assistant message is an ordered array of typed <code>Part</code>s. Three of them — <code>text</code>, <code>reasoning</code>, <code>tool</code> — drive the inline rendering. Tools come in two visual weights and have per-tool icons. SolidJS fine-grained reactivity means one streaming token re-paints one text node.</p>
+</header>
+
+<aside class="callout callout--muted">
+  <strong>Note.</strong> opencode's TUI is <em>not</em> Bubble Tea / Go anymore. The current TUI lives entirely in <code>packages/opencode/src/cli/cmd/tui/</code> as TypeScript + SolidJS rendered via OpenTUI. Findings below are tied to <code>file:line</code> citations against the cloned repo.
+</aside>
+
+<div class="toc">
+  <h3>On this page</h3>
+  <ol>
+    <li><a href="#layout">Repo layout</a></li>
+    <li><a href="#pipeline">Streaming pipeline</a></li>
+    <li><a href="#parts">Message part types</a></li>
+    <li><a href="#reasoning">Reasoning rendering</a></li>
+    <li><a href="#tools">Tool call rendering</a></li>
+    <li><a href="#results">Tool result rendering</a></li>
+    <li><a href="#text">Final assistant text</a></li>
+    <li><a href="#animations">Animations / spinners</a></li>
+    <li><a href="#multiturn">Multi-turn / context</a></li>
+    <li><a href="#subagents">Sub-agents and parallelism</a></li>
+    <li><a href="#state">State model</a></li>
+    <li><a href="#decisions">Notable design decisions</a></li>
+  </ol>
+</div>
+
+<section id="layout">
+<h2>1. Repo layout</h2>
+
+<pre><code>packages/opencode/src/
+  session/
+    message-v2.ts       Part / ToolState schemas, message.* bus events
+    processor.ts        AI SDK stream-event handler -&gt; Parts + bus
+    status.ts           SessionStatus state machine
+    llm.ts              Wires AI SDK streamText to processor
+    session.ts          updatePart / updatePartDelta APIs
+  server/               Bun HTTP server, exposes SSE event stream
+  cli/cmd/tui/
+    app.tsx             Root providers, routing, command palette
+    routes/session/
+      index.tsx         User/Assistant message + every tool renderer (2,344 lines)
+      subagent-footer.tsx
+      permission.tsx, question.tsx, sidebar.tsx
+    component/
+      spinner.tsx       Reusable braille spinner
+      prompt/index.tsx  Input editor + status bar
+      bg-pulse.tsx      30 fps live frame-buffer background
+    context/
+      sdk.tsx           SSE subscription + 16 ms batching
+      sync.tsx          Solid Store of messages/parts/status
+      thinking.ts       Thinking-mode preference
+      theme.tsx</code></pre>
+
+</section>
+
+<section id="pipeline">
+<h2>2. Streaming pipeline</h2>
+
+<ol>
+  <li><strong>AI SDK stream</strong> at <code>session/llm.ts</code> feeds <code>StreamEvent</code>s.</li>
+  <li><strong>Processor</strong> at <code>session/processor.ts:305</code> (<code>handleEvent</code>) switches on:
+    <pre><code>reasoning-start | reasoning-delta | reasoning-end
+tool-input-start | tool-input-end | tool-call | tool-result | tool-error
+text-start | text-delta | text-end
+step-start | step-finish</code></pre>
+    Each case mutates a Part on <code>ctx</code> (<code>ctx.reasoningMap</code>, <code>ctx.toolcalls</code>, <code>ctx.currentText</code>) then calls <code>session.updatePart(...)</code> (full snapshot, publishes <code>MessageV2.Event.PartUpdated</code>) or <code>session.updatePartDelta(...)</code> (publishes <code>MessageV2.Event.PartDelta</code>).
+  </li>
+  <li><strong>HTTP SSE</strong> server exposes a global event stream.</li>
+  <li><strong>TUI subscribes</strong> at <code>cli/cmd/tui/context/sdk.tsx:74</code> (<code>startSSE → sdk.global.event({sseMaxRetryAttempts: 0})</code>). Events are micro-batched (<code>sdk.tsx:46-72</code>): if last flush was &lt;16 ms ago, a <code>setTimeout(flush, 16)</code> coalesces; flush wraps emissions in Solid <code>batch(...)</code>.</li>
+  <li><strong>Reducer</strong> at <code>cli/cmd/tui/context/sync.tsx:240-358</code> switches on event type:
+    <ul>
+      <li><code>case "message.updated"</code> (line 253) — binary-search insert into <code>store.message[sessionID]</code> (caps at 100; drops oldest).</li>
+      <li><code>case "message.part.updated"</code> (line 306) — same for <code>store.part[messageID]</code>.</li>
+      <li><code>case "message.part.delta"</code> (line 327) — appends <code>delta</code> onto <code>part[field]</code> <em>in place</em>. The streaming path.</li>
+      <li><code>case "session.status"</code> (line 248) — writes <code>store.session_status[sessionID]</code>.</li>
+    </ul>
+  </li>
+  <li><strong>Solid renderers</strong> — <code>&lt;For each={messages()}&gt;</code> (<code>routes/session/index.tsx:1129</code>) then <code>&lt;For each={props.parts}&gt;</code> (line 1426) with <code>&lt;Dynamic component={PART_MAPPING[part.type]} ...&gt;</code>. Because the store is fine-grained reactive and parts mutate in place, only the changed text node re-renders per delta — no diff.</li>
+</ol>
+
+<div class="callout callout--good">
+  <strong>Key architectural decision:</strong> <code>message.part.delta</code> is a <em>BusEvent</em>, not a <em>SyncEvent</em>. Compare <code>message-v2.ts:530</code> (<code>PartUpdated</code> = SyncEvent) vs <code>536</code> (<code>PartDelta</code> = BusEvent). The delta is a transport optimisation, not part of the persisted event log; canonical post-stream state is in the final <code>PartUpdated</code>.
+</div>
+
+</section>
+
+<section id="parts">
+<h2>3. Message part types</h2>
+
+<p>All defined in <code>packages/opencode/src/session/message-v2.ts</code>:</p>
+
+<table>
+  <tr><th>Type</th><th>Line</th><th>Schema</th></tr>
+  <tr><td><code>TextPart</code></td><td>97</td><td><code>{ id, type:"text", text, synthetic?, ignored?, time?, metadata? }</code></td></tr>
+  <tr><td><code>ReasoningPart</code></td><td>113</td><td><code>{ id, type:"reasoning", text, metadata?, time:{start, end?} }</code></td></tr>
+  <tr><td><code>FilePart</code></td><td>160</td><td><code>{ id, type:"file", mime, filename?, url, source? }</code></td></tr>
+  <tr><td><code>ToolPart</code></td><td>310</td><td><code>{ id, type:"tool", callID, tool, state: ToolState, metadata? }</code></td></tr>
+  <tr><td><code>StepStartPart</code></td><td>222</td><td><code>{ id, type:"step-start", snapshot? }</code></td></tr>
+  <tr><td><code>StepFinishPart</code></td><td>229</td><td><code>{ id, type:"step-finish", reason, cost, tokens, snapshot? }</code></td></tr>
+  <tr><td><code>SnapshotPart</code></td><td>82</td><td><code>{ id, type:"snapshot", snapshot }</code></td></tr>
+  <tr><td><code>PatchPart</code></td><td>89</td><td><code>{ id, type:"patch", hash, files }</code></td></tr>
+  <tr><td><code>AgentPart</code></td><td>170</td><td><code>{ id, type:"agent", name, source? }</code></td></tr>
+  <tr><td><code>SubtaskPart</code></td><td>193</td><td><code>{ id, type:"subtask", prompt, description, agent, model?, command? }</code></td></tr>
+  <tr><td><code>CompactionPart</code></td><td>184</td><td><code>{ id, type:"compaction", auto, overflow?, tail_start_id? }</code></td></tr>
+  <tr><td><code>RetryPart</code></td><td>209</td><td><code>{ id, type:"retry", error, time }</code></td></tr>
+</table>
+
+<p>Union at <code>message-v2.ts:352</code>. <code>ToolState</code> is itself a union (<code>message-v2.ts:248-308</code>): <code>pending | running | completed | error</code>.</p>
+
+<p><strong>Inline mapping in the TUI</strong> (<code>routes/session/index.tsx:1493</code>):</p>
+
+<pre><code>const PART_MAPPING = { text: TextPart, tool: ToolPart, reasoning: ReasoningPart }</code></pre>
+
+<p>Only three types render inline in the assistant message body; the others are read by sidebar/footer/transcript code.</p>
+</section>
+
+<section id="reasoning">
+<h2>4. Reasoning rendering</h2>
+
+<p>From <code>routes/session/index.tsx:1499</code> (<code>ReasoningPart</code>):</p>
+
+<pre><code>const isDone = createMemo(() =&gt; props.part.time.end !== undefined)
+const inMinimal = createMemo(() =&gt; ctx.thinkingMode() === "hide")
+
+&lt;Switch&gt;
+  &lt;Match when={!inMinimal() || expanded()}&gt;
+    &lt;code filetype="markdown" streaming={true}
+          content={(inMinimal()?"- ":"") +
+                   (isDone()?"_Thought:_ ":"_Thinking:_ ") +
+                   content()} /&gt;
+  &lt;/Match&gt;
+  &lt;Match when={isDone()}&gt;
+    &lt;CollapsedReasoningText title={title()} duration={duration()} /&gt;
+  &lt;/Match&gt;
+  &lt;Match when={true}&gt;
+    &lt;Spinner color={theme.textMuted}&gt;
+      {title() ? "Thinking: " + title() : "Thinking"}
+    &lt;/Spinner&gt;
+  &lt;/Match&gt;
+&lt;/Switch&gt;</code></pre>
+
+<ul>
+  <li><strong>Streaming:</strong> single-line spinner "<code>Thinking</code>" (or "<code>Thinking: &lt;Title&gt;</code>" extracted from <code>**Title**</code> reasoning summaries via <code>reasoningTitle()</code>).</li>
+  <li><strong>Settled, minimal (default):</strong> one line "<code>+ Thought: &lt;title&gt; · &lt;duration&gt;</code>" in <code>theme.warning</code> (<code>CollapsedReasoningText</code>, line 1564). Click toggles to full markdown.</li>
+  <li><strong>Settled, expanded:</strong> full <code>&lt;code filetype="markdown" streaming={true}&gt;</code> block prefixed "<code>_Thought:_ </code>", in <code>theme.textMuted</code> with italics-stripped subtle-syntax style.</li>
+</ul>
+
+<p>Processor flips <code>time.end</code> on <code>reasoning-end</code> (<code>processor.ts:226</code>).</p>
+</section>
+
+<section id="tools">
+<h2>5. Tool call rendering</h2>
+
+<p><code>ToolPart</code> dispatch (<code>routes/session/index.tsx:1600</code>) switches on <code>props.part.tool</code> to one of <code>Shell</code>, <code>Glob</code>, <code>Read</code>, <code>Grep</code>, <code>WebFetch</code>, <code>WebSearch</code>, <code>Write</code>, <code>Edit</code>, <code>Task</code>, <code>ApplyPatch</code>, <code>TodoWrite</code>, <code>Question</code>, <code>Skill</code>, <code>GenericTool</code>.</p>
+
+<h3>Two reusable wrappers</h3>
+
+<details open>
+  <summary><code>InlineTool</code> (line 1730) <span class="summary-tldr">— one row, glyph + text.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li>One row, <code>paddingLeft={3}</code>, glyph + text.</li>
+      <li>Pending shows "<code>~ &lt;pending text&gt;</code>"; completed shows "<code>&lt;icon&gt; &lt;complete text&gt;</code>" in <code>theme.textMuted</code>.</li>
+      <li>Spinner can be inlined.</li>
+      <li>Permissions: lookup first pending permission for the session at line 1747; if its <code>callID</code> matches, forces <code>theme.warning</code> foreground (yellow).</li>
+      <li>Errors render below in <code>theme.error</code>; "denied" errors render the line with <code>TextAttributes.STRIKETHROUGH</code>.</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary><code>BlockTool</code> (line 1822) <span class="summary-tldr">— bordered panel.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li>Bordered (<code>border={["left"]}</code>, <code>SplitBorder.customBorderChars</code>) panel.</li>
+      <li><code>theme.backgroundPanel</code> bg; hover → <code>theme.backgroundMenu</code>.</li>
+      <li>Title bar may be spinner-titled (<code>spinner={isRunning()}</code>).</li>
+    </ul>
+  </div>
+</details>
+
+<h3>Icon vocabulary</h3>
+
+<table>
+  <tr><th>Tool</th><th>Icon</th><th>Pending text</th></tr>
+  <tr><td>Shell</td><td><code>$</code> / spinner-titled block</td><td>"Writing command..."</td></tr>
+  <tr><td>Glob</td><td><code>✱</code></td><td>"Finding files..."</td></tr>
+  <tr><td>Read</td><td><code>→</code> + spinner</td><td>"Reading file..."</td></tr>
+  <tr><td>Grep</td><td><code>✱</code></td><td>"Searching content..."</td></tr>
+  <tr><td>WebFetch</td><td><code>%</code></td><td>"Fetching from the web..."</td></tr>
+  <tr><td>WebSearch</td><td><code>◈</code></td><td>"Searching web..."</td></tr>
+  <tr><td>Write</td><td><code>←</code></td><td>"Preparing write..."</td></tr>
+  <tr><td>Edit</td><td><code>←</code></td><td>"Preparing edit..."</td></tr>
+  <tr><td>ApplyPatch</td><td><code>%</code></td><td>"Preparing patch..."</td></tr>
+  <tr><td>Task (subagent)</td><td><code>│</code> + spinner</td><td>"Delegating..."</td></tr>
+  <tr><td>TodoWrite</td><td><code>⚙</code></td><td>"Updating todos..."</td></tr>
+  <tr><td>Question</td><td><code>→</code></td><td>"Asking questions..."</td></tr>
+  <tr><td>Skill</td><td><code>→</code></td><td>"Loading skill..."</td></tr>
+  <tr><td>Generic</td><td><code>⚙</code></td><td>"Writing command..."</td></tr>
+</table>
+
+<p>Argument display: helper <code>input(input, omit?)</code> at <code>routes/session/index.tsx:2328</code> serialises primitive fields as "<code>[k=v, k2=v2]</code>"; path-typed arguments go through <code>usePathFormatter().format(...)</code>.</p>
+
+<p>Loading state: <code>state.status === "running"</code> swaps icon for <code>&lt;Spinner&gt;</code> (e.g. Read at line 1989). Shell uses block form with <code>spinner={isRunning()}</code>.</p>
+</section>
+
+<section id="results">
+<h2>6. Tool result rendering</h2>
+
+<div class="callout">
+  <strong>No separate "tool_result" part type.</strong> The result is merged into the same <code>ToolPart</code> by transitioning <code>state</code> from <code>ToolStateRunning</code> to <code>ToolStateCompleted</code> (<code>output</code>, <code>title</code>, <code>metadata</code>, <code>time.end</code>, optional <code>attachments</code>). Handler: <code>processor.ts:452</code>; result normaliser: <code>toolResultOutput()</code> at <code>processor.ts:282</code>.
+</div>
+
+<table>
+  <tr><th>Tool</th><th>How the result renders</th></tr>
+  <tr><td><strong>Shell</strong> (<code>index.tsx:1869</code>)</td><td>When <code>metadata.output !== undefined</code>, switches to <code>BlockTool</code> titled <code># &lt;description&gt; in &lt;workdir&gt;</code>, echoes <code>$ &lt;command&gt;</code>, runs output through <code>stripAnsi</code>, truncates via <code>collapseToolOutput(output, 10, ...)</code>. Overflow shows clickable "Click to expand" / "Click to collapse" in <code>theme.textMuted</code>.</td></tr>
+  <tr><td><strong>Edit / Write / ApplyPatch</strong> (lines 1927, 2113, 2166)</td><td>When diff is in <code>metadata</code>, renders custom <code>&lt;diff&gt;</code> opentui component with <code>view="split"</code> if <code>ctx.width &gt; 120</code> else <code>"unified"</code>, plus a <code>Diagnostics</code> panel listing up to 3 severity-1 LSP errors from <code>metadata.diagnostics</code>.</td></tr>
+  <tr><td><strong>Glob / Grep / WebSearch</strong></td><td>Stay inline but append match counts (<code>(3 matches)</code>).</td></tr>
+  <tr><td><strong>TodoWrite</strong> (line 2242)</td><td><code>BlockTool</code> titled <code># Todos</code>, each <code>TodoItem</code> from <code>component/todo-item.tsx</code>.</td></tr>
+  <tr><td><strong>Question</strong> (line 2263)</td><td>Block titled <code># Questions</code>, question text in <code>theme.textMuted</code>, answers in <code>theme.text</code>.</td></tr>
+  <tr><td><strong>GenericTool</strong> (line 1692)</td><td>Block only when <code>ctx.showGenericToolOutput()</code> toggle is on (default off); otherwise inline.</td></tr>
+</table>
+
+<p>A global <strong>Show details</strong> toggle (<code>session.toggle.actions</code>, drives <code>ctx.showDetails()</code>) hides <em>completed</em> tool parts entirely when off (<code>shouldHide</code> at <code>routes/session/index.tsx:1604</code>) — only pending / running / errored tools remain visible, keeping the transcript prose-focused.</p>
+</section>
+
+<section id="text">
+<h2>7. Final assistant text</h2>
+
+<p><code>TextPart</code> (<code>routes/session/index.tsx:1577</code>):</p>
+
+<pre><code>&lt;box id={"text-" + props.part.id} paddingLeft={3} marginTop={1} flexShrink={0}&gt;
+  &lt;markdown
+    syntaxStyle={syntax()}
+    streaming={true}
+    internalBlockMode="top-level"
+    content={props.part.text.trim()}
+    tableOptions={{ style: "grid" }}
+    conceal={ctx.conceal()}
+    fg={theme.markdownText}
+    bg={theme.background}
+  /&gt;
+&lt;/box&gt;</code></pre>
+
+<p>No left border, no panel — assistant text "sits flat" against <code>theme.background</code>. Tool blocks have left borders + panel backgrounds, creating visual hierarchy.</p>
+
+<p>Each assistant message ends with a footer (<code>index.tsx:1463-1488</code>): <code>▣  &lt;Mode&gt; · &lt;model-name&gt; · &lt;duration&gt;</code> where <code>▣</code> is coloured by <code>local.agent.color(message.agent)</code>; duration only shown when <code>message.finish</code> is a terminal reason (not <code>"tool-calls"</code> / <code>"unknown"</code>); on <code>MessageAbortedError</code> the glyph turns muted and "<code>· interrupted</code>" is appended. The footer is only shown for the last message of a turn.</p>
+</section>
+
+<section id="animations">
+<h2>8. Animations / spinners</h2>
+
+<ol>
+  <li><strong>Generic <code>&lt;Spinner&gt;</code></strong> at <code>component/spinner.tsx:8</code>:
+  <pre><code>export const SPINNER_FRAMES = ["⠋","⠙","⠹","⠸","⠼","⠴","⠦","⠧","⠇","⠏"]
+&lt;spinner frames={SPINNER_FRAMES} interval={80} color={color()} /&gt;</code></pre>
+  80 ms tick (12.5 fps). Used by <code>InlineTool</code> running state, reasoning placeholder, <code>BlockTool</code> title. Honors <code>animations_enabled</code> KV flag (renders static <code>⋯</code> when off).</li>
+
+  <li><strong>Agent-coloured prompt-bar spinner</strong> at <code>component/prompt/index.tsx:1440</code>:
+  <pre><code>frames: createFrames({ color, style: "blocks", inactiveFactor: 0.6, minAlpha: 0.3 })
+&lt;spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} /&gt;</code></pre>
+  40 ms tick (25 fps), coloured per agent (plan / build distinct). Only shown when <code>status().type !== "idle"</code>. Next to it: "<code>esc interrupt</code>" (escalates to "<code>esc again to interrupt</code>" in <code>theme.primary</code> after one press).</li>
+
+  <li><strong>Background frame-buffer animation</strong> at <code>component/bg-pulse.tsx</code>: <code>FrameBufferRenderable</code> with <code>live: true</code>, bumps renderer to 30 fps (<code>renderer.targetFps = 30</code>). Default renderer is 60 fps (<code>app.tsx:131</code>).</li>
+
+  <li><strong>Streaming markdown / code</strong> — <code>&lt;markdown streaming={true}&gt;</code> and <code>&lt;code streaming={true}&gt;</code> re-tokenize incrementally on each in-place text mutation. Not a tick; relies on Solid fine-grained reactivity.</li>
+</ol>
+</section>
+
+<section id="multiturn">
+<h2>9. Multi-turn / context</h2>
+
+<ul>
+  <li><strong>Server-persisted.</strong> Sessions/messages in SQLite (<code>storage/db.bun.ts</code>). On focus, <code>routes/session/index.tsx:248-272</code> calls <code>sdk.client.session.get</code> then <code>sync.session.sync(sessionID)</code>; live updates over SSE.</li>
+  <li><strong>TUI store.</strong> <code>store.message[sessionID]: MessageInfo[]</code> (binary-search sorted), <code>store.part[messageID]: Part[]</code>. Soft cap of 100 per session in the live view — older ones get shifted off and their parts dropped (<code>sync.tsx:272-289</code>); they remain on disk.</li>
+  <li><strong>Compaction.</strong> Processor sets <code>ctx.needsCompaction</code> on overflow (<code>processor.ts:614</code>) and creates a <code>CompactionPart</code>. The TUI renders it as a centred title rule (<code>routes/session/index.tsx:1389</code>): "<code>━━━ Compaction ━━━</code>".</li>
+  <li><strong>Display.</strong> One <code>&lt;scrollbox stickyScroll={true} stickyStart="bottom"&gt;</code> (<code>index.tsx:1110</code>). Keyboard jumps via <code>session.message.next/previous</code>, <code>session.first/last</code>, <code>session.timeline</code>.</li>
+  <li><strong>Revert / redo.</strong> <code>session()?.revert?.messageID</code> marks a point; everything after is hidden (<code>&lt;Match when={revert()?.messageID &amp;&amp; message.id &gt;= revert()!.messageID}&gt;</code>, line 1192), replaced by a clickable "<em>N message reverted — &lt;shortcut&gt; or /redo to restore</em>" pill listing changed files with <code>+adds</code> / <code>-dels</code> counts.</li>
+</ul>
+</section>
+
+<section id="subagents">
+<h2>10. Sub-agents and parallelism</h2>
+
+<p><strong>Sub-agents exist</strong> as child sessions. The <code>task</code> tool (<code>packages/opencode/src/tool/task.ts</code>) creates a new <code>Session</code> whose <code>parentID</code> points at the caller. Supports <code>background: boolean</code> (<code>task.ts:56</code>); for backgrounded tasks, <code>task_status</code> polls (<code>tool/task_status.ts</code>).</p>
+
+<details open>
+  <summary>How the TUI surfaces subagents <span class="summary-tldr">— live inline + footer + dialogs.</span></summary>
+  <div class="details-body">
+
+  <ul>
+    <li><strong>Inline <code>Task</code> renderer</strong> at <code>routes/session/index.tsx:2037</code>: <code>InlineTool</code> icon <code>│</code> with spinner. While running, it reads <code>sync.data.message[metadata.sessionId]</code> and pulls the most recent running / completed child tool to show:
+    <pre><code>│ General Task — Investigating regression
+   ↳ Read /src/foo.ts
+   └ 7 toolcalls · 12s</code></pre>
+    Clicking calls <code>navigate({ type: "session", sessionID: metadata.sessionId })</code>.</li>
+
+    <li><strong>Top-of-message hint</strong> when any part is a task (line 1441): "<code>&lt;shortcut&gt; view subagents</code>".</li>
+
+    <li><strong><code>SubagentFooter</code></strong> at <code>routes/session/subagent-footer.tsx</code>: when viewing a child session (<code>session()?.parentID</code> set), draws a left-bordered footer with <code>&lt;AgentName&gt; (i of N) · &lt;tokens&gt; · &lt;cost&gt;</code> and Parent / Prev / Next buttons dispatching <code>session.parent</code>, <code>session.child.previous</code>, <code>session.child.next</code>.</li>
+
+    <li><strong>Dialogs</strong> at <code>routes/session/dialog-subagent.tsx</code> and <code>component/dialog-agent.tsx</code>.</li>
+  </ul>
+  </div>
+</details>
+
+<p><strong>Parallelism:</strong> the processor awaits all in-flight tool calls in parallel via <code>Effect.forEach(Object.values(ctx.toolcalls), call =&gt; Deferred.await(call.done), { concurrency: "unbounded" })</code> (<code>processor.ts:723</code>). Tool calls from a single LLM step run as concurrent <code>Fiber</code>s; their <code>ToolPart</code>s update independently as their <code>state</code> transitions. Multiple subagents are sibling child sessions navigable via the footer.</p>
+
+<p>README documents built-in agents <code>build</code> (default, full-access), <code>plan</code> (read-only), and <code>general</code> (subagent invokable with <code>@general</code>).</p>
+</section>
+
+<section id="state">
+<h2>11. State model</h2>
+
+<ol>
+  <li><strong>Session status</strong> at <code>packages/opencode/src/session/status.ts:8</code>:
+  <pre><code>Info = Schema.Union([
+  { type: "idle" },
+  { type: "retry", attempt, message, action?, next },
+  { type: "busy" },
+])</code></pre>
+  Published as <code>Event.Status</code>. Mirrored into <code>store.session_status[sessionID]</code> (<code>sync.tsx:248</code>), drives the prompt-bar spinner / retry banner (<code>prompt/index.tsx:150,1623</code>). Retry banner shows truncated error message, attempt #, live countdown (<code>prompt/index.tsx:1657-1690</code>).</li>
+
+  <li><strong>Per-tool-call</strong> at <code>message-v2.ts:248-308</code>: <code>pending → running → completed | error</code>. Transitions in <code>ensureToolCall</code> (<code>processor.ts:267</code>, creates as pending), <code>case "tool-call"</code> (<code>processor.ts:411</code>, promotes to running with input), <code>case "tool-result"</code> (completed), <code>case "tool-error"</code> (error). Each fires a <code>message.part.updated</code> SSE event.</li>
+
+  <li><strong>Reasoning lifecycle:</strong> implicit — <code>time.start</code> only = streaming; <code>time.start + time.end</code> = done. Drives the three-way <code>&lt;Switch&gt;</code> in <code>ReasoningPart</code>.</li>
+
+  <li><strong>Assistant message completion:</strong> <code>message.time.completed</code> plus <code>message.finish</code>. <code>pending()</code> memo (<code>routes/session/index.tsx:206</code>) finds the assistant message with no <code>time.completed</code>; <code>final()</code> memo (line 1410) is true when <code>finish</code> is a non-tool-calls reason. The <code>▣ Mode · model · duration</code> footer only renders when <code>final()</code> or <code>props.last</code>.</li>
+</ol>
+</section>
+
+<section id="decisions">
+<h2>12. Notable design decisions</h2>
+
+<ul>
+  <li><strong>SolidJS + OpenTUI</strong>, not Bubble Tea / Ink / React. OpenTUI provides JSX primitives <code>box</code>, <code>scrollbox</code>, <code>text</code>, <code>spinner</code>, <code>code</code>, <code>markdown</code>, <code>diff</code>, <code>line_number</code>. Fine-grained reactivity means a streaming token only repaints one text node.</li>
+  <li><strong>16 ms event-batching at the SSE boundary</strong> (<code>sdk.tsx:46-72</code>) wrapped in Solid <code>batch(...)</code> prevents per-character renders during fast deltas.</li>
+  <li><strong>Two visual weights for tools.</strong> Inline (one row) for cheap work; block (left-border panel) when there's something worth reading (diffs, shell output, todos, multi-question forms). <code>showDetails()</code> toggle hides successful tool calls entirely.</li>
+  <li><strong>Left-border-only panels.</strong> Both user messages and block tools use a custom <code>SplitBorder.customBorderChars</code> with <code>border={["left"]}</code>. The prompt bottom-left uses <code>╹</code> for visual continuity.</li>
+  <li><strong>Agent-coloured chrome.</strong> User message left-border in <code>local.agent.color(message.agent)</code>; prompt spinner uses fade-pulse "blocks" frames. Plan vs build turns are colour-distinguishable.</li>
+  <li><strong>Reasoning collapses by default with title extraction.</strong> <code>reasoningTitle()</code> pulls the <code>**Title**</code> line out of OpenAI / Copilot reasoning summaries so the collapsed form is meaningful ("<code>+ Thought: &lt;title&gt; · 4.3s</code>"), not a bare duration.</li>
+  <li><strong>Reverted history is hidden, not deleted.</strong> Server-side undo / redo durable across reconnects; UI filters out messages past the revert point and shows a clickable "<em>N message reverted</em>" pill.</li>
+  <li><strong>Subagent task box shows live child activity</strong> (<code>index.tsx:2046-2093</code>). The parent's task card reads child session parts every render — "what is my subagent doing right now" without leaving the parent.</li>
+  <li><strong><code>message.part.delta</code> is a BusEvent, not a SyncEvent</strong> — a transport optimisation, not part of the persisted event log; canonical post-stream state is in the final <code>PartUpdated</code>.</li>
+</ul>
+</section>
+
+<section>
+<h2>Artifacts</h2>
+
+<ul>
+  <li><a href="../../opencode/FINDINGS.md">FINDINGS.md</a> — full raw notes.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/opencode/repo/</span> — cloned repo (depth 1).</li>
+</ul>
+</section>
+
+<p class="foot"><a href="../index.html">← Back to executive summary</a></p>
+
+</div>
+</body>
+</html>

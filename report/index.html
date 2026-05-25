@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agent UI Research — Executive Summary</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+
+<header class="page-header">
+  <p class="eyebrow">Research · 2026-05-24</p>
+  <h1>How agent UIs present a turn</h1>
+  <p class="lede">Side-by-side look at six surfaces: three full agent UIs (ChatGPT, sst/opencode, earendil-works/pi — TUI and web), one closed-iframe widget (OpenAI ChatKit), and two reusable libraries (Vercel Chat SDK, Vercel AI Elements). Focused on what users actually see between hitting Enter and reading the answer.</p>
+</header>
+
+<section>
+  <h2>The lineup</h2>
+
+  <div class="card-grid">
+
+    <article class="card">
+      <a class="card-link" href="chatgpt/index.html">
+      <p class="card-tag">Web · Closed source</p>
+      <h2>ChatGPT</h2>
+      <p class="card-tldr">Tools are <em>invisible</em>: the agent loop hides every <code>tool</code>-role message and surfaces work only as inline citation pills (150&nbsp;ms fade-in). JSON-Patch stream over SSE; older turns are unmounted from the DOM.</p>
+      <p class="card-cta">Read →</p>
+      </a>
+    </article>
+
+    <article class="card">
+      <a class="card-link" href="opencode/index.html">
+      <p class="card-tag">TUI · Open source</p>
+      <h2>sst/opencode</h2>
+      <p class="card-tldr">Three "parts" types (<code>text</code>, <code>reasoning</code>, <code>tool</code>) drive every render. Tools in two visual weights — inline and bordered block — with per-tool icons and live status colors. SolidJS + OpenTUI repaints only the changed text node per delta.</p>
+      <p class="card-cta">Read →</p>
+      </a>
+    </article>
+
+    <article class="card">
+      <a class="card-link" href="pi/index.html">
+      <p class="card-tag">Web + TUI · Open source</p>
+      <h2>earendil-works/pi</h2>
+      <p class="card-tldr">Pi ships a Lit-based web UI and a TUI on a shared <code>AgentEvent</code> protocol. Every <code>message_update</code> ships a full snapshot — no diff tracking. Web UI uses a stable list + rAF-batched streaming overlay, with deep-cloned snapshots to defeat Lit identity checks.</p>
+      <p class="card-cta">Read →</p>
+      </a>
+    </article>
+
+    <article class="card">
+      <a class="card-link" href="chatkit-js/index.html">
+      <p class="card-tag">Closed iframe · OpenAI-only</p>
+      <h2>OpenAI ChatKit</h2>
+      <p class="card-tldr">The npm packages are types + a 6.5&nbsp;KB React wrapper. The actual UI is a closed iframe served from <code>cdn.platform.openai.com</code>. Same renderer that powers ChatGPT.com. <strong>Not</strong> usable outside OpenAI's infrastructure.</p>
+      <p class="card-cta">Read →</p>
+      </a>
+    </article>
+
+    <article class="card">
+      <a class="card-link" href="vercel-chat-sdk/index.html">
+      <p class="card-tag">Next.js template · Open source</p>
+      <h2>Vercel Chat SDK</h2>
+      <p class="card-tldr">A Next.js reference template + a constellation of npm libraries (<code>ai</code>, <code>@ai-sdk/react</code>, <code>streamdown</code>, <code>resumable-stream</code>). Libraries are platform-neutral; the template has ~5 single-line Vercel touchpoints. Killer feature: side-panel "artifacts".</p>
+      <p class="card-cta">Read →</p>
+      </a>
+    </article>
+
+    <article class="card">
+      <a class="card-link" href="vercel-ai-elements/index.html">
+      <p class="card-tag">React registry · Open source</p>
+      <h2>Vercel AI Elements</h2>
+      <p class="card-tldr">A shadcn-style copy-paste registry of 47 React components for AI UIs. CLI shells out to <code>shadcn add</code>; source lands in your repo. Zero Vercel-infrastructure coupling. Includes <code>Conversation</code>, <code>Message</code>, <code>Reasoning</code>, <code>Tool</code>, <code>PromptInput</code>, voice, workflow canvas.</p>
+      <p class="card-cta">Read →</p>
+      </a>
+    </article>
+
+  </div>
+</section>
+
+<section>
+  <h2>What stands out across all six</h2>
+
+  <details open>
+    <summary>1. Three families: full UIs, libraries, and a closed iframe. <span class="summary-tldr">— pick which kind of integration you want before picking a vendor.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>Full agent UIs</strong> (ChatGPT, opencode, pi) — you use them as products or read their source to learn patterns. The mental model is "study the implementation."</li>
+        <li><strong>Libraries / templates</strong> (Vercel Chat SDK, AI Elements, pi-web-ui as a library) — you compose your own UI from primitives. The mental model is "assemble pieces."</li>
+        <li><strong>Closed iframe widgets</strong> (ChatKit) — you embed a vendor-controlled UI. The mental model is "rent the renderer." OpenAI's design here means ChatKit integrations <em>are</em> ChatGPT.com under a different config profile.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>2. Three different answers to "what is a message?" <span class="summary-tldr">— and that choice flows through everything.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>ChatGPT</strong> treats a message as a single envelope with a content-string that grows via JSON-Patch <code>append</code> ops on <code>/message/content/parts/0</code>. Tools are <em>separate hidden messages</em> chained via <code>parent_id</code>.</li>
+        <li><strong>opencode</strong> treats a message as an ordered array of typed <code>Part</code>s (<code>text</code>, <code>reasoning</code>, <code>tool</code>, plus 9 less-visible ones). Each part has its own lifecycle and renderer.</li>
+        <li><strong>pi</strong> treats a message as an array of <code>Content</code> blocks (<code>text</code>, <code>thinking</code>, <code>tool_call</code>) all carried in the same <code>AssistantMessage.content</code>. Updates are full snapshots, not patches.</li>
+        <li><strong>Vercel AI SDK</strong> (Chat SDK + Elements) standardises on <code>UIMessage&lt;Meta, Data, Tools&gt;</code> with a typed <code>parts: UIMessagePart[]</code> array. The part union covers <code>text</code>, <code>reasoning</code>, <code>tool-&lt;name&gt;</code> (with a 7-state machine), <code>dynamic-tool</code>, <code>file</code>, <code>source-url</code>, <code>source-document</code>, <code>step-start/finish</code>, and custom <code>data-&lt;key&gt;</code> channels.</li>
+        <li><strong>ChatKit</strong> uses "thread items" with types <code>assistant_message</code>, <code>user_message</code>, <code>client_tool_call</code>, <code>task</code> (reasoning), <code>widget</code>, <code>workflow</code>, <code>image_generation</code>, <code>generated_image</code>, <code>structured_input</code>, <code>end_of_turn</code>. Server-authored, client-rendered widgets are the distinctive piece.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>3. Reasoning rendering ranges from absent to elaborate. <span class="summary-tldr">— and is highly user-controllable on the open-source ones.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>ChatGPT free tier</strong> never shows a reasoning summary. <code>server_ste_metadata</code> reports <code>did_auto_switch_to_reasoning: false</code>.</li>
+        <li><strong>opencode</strong> uses a three-state <code>&lt;Switch&gt;</code>: streaming shows "<code>Thinking: &lt;title&gt;</code>"; settled collapses to "<code>+ Thought: &lt;title&gt; · 4.3s</code>"; expanded shows full markdown.</li>
+        <li><strong>pi (TUI)</strong> renders <code>ThinkingContent</code> inline italic; <kbd>Ctrl+T</kbd> collapses.</li>
+        <li><strong>pi (web)</strong> shows one collapsed block; while streaming, a CSS keyframe shimmer animates the "Thinking..." label (no JS tick).</li>
+        <li><strong>Vercel AI Elements</strong> ships <code>&lt;Reasoning&gt;</code> — Radix Collapsible that auto-opens on stream, auto-closes 1&nbsp;s after, tracks duration, default trigger is "<code>Thinking...</code>" → "<code>Thought for N seconds</code>".</li>
+        <li><strong>ChatKit</strong> emits <code>thread.item.task</code> for reasoning; rendering is inside the closed iframe.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>4. Tool-call visibility is the biggest differentiator. <span class="summary-tldr">— ChatGPT hides them; everyone else treats them as first-class UI.</span></summary>
+    <div class="details-body">
+      <table>
+        <tr><th>UI</th><th>Pre-call</th><th>Args</th><th>Result</th></tr>
+        <tr><td>ChatGPT</td><td>Empty <code>request-placeholder-request-WEB:&hellip;</code> &lt;300 ms</td><td>Hidden in SSE only</td><td>Hidden; folded into citations</td></tr>
+        <tr><td>opencode</td><td>Inline row <code>~ Pending text</code></td><td>Inlined as <code>[k=v, k=v]</code></td><td>Inline-mini or bordered block per tool</td></tr>
+        <tr><td>pi</td><td>Tool box, <code>toolPendingBg</code></td><td>Per-tool <code>renderCall</code> / <code>render(params, …, isStreaming)</code></td><td>Same box mutates; bg color → success/error</td></tr>
+        <tr><td>AI Elements / Chat SDK</td><td>Status badge "Pending"</td><td>JSON CodeBlock in collapsed panel</td><td>Object → JSON; string → CodeBlock; React → rendered</td></tr>
+        <tr><td>ChatKit</td><td>Card disclosure for client tools; server tools emit visible artefacts</td><td>Not rendered (server-side)</td><td>Server streams back <code>WidgetItem</code>, <code>AssistantMessageItem</code>, <code>ProgressUpdateEvent</code>, …</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <details>
+    <summary>5. Streaming protocols cluster around the same idea. <span class="summary-tldr">— SSE everywhere; envelope shape varies.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>ChatGPT:</strong> SSE <code>event: delta</code> records carry JSON-Patch ops (<code>add</code>, <code>replace</code>, <code>append</code>, <code>patch</code>) addressing a JSON-Pointer path inside the message envelope.</li>
+        <li><strong>opencode:</strong> Two complementary event types — <code>message.part.updated</code> (full snapshot, persisted) and <code>message.part.delta</code> (transport optimisation, not persisted).</li>
+        <li><strong>pi:</strong> Single <code>message_update</code> event with a full <code>partial: AssistantMessage</code> snapshot per change.</li>
+        <li><strong>Vercel AI SDK:</strong> The "UI Message Stream protocol v1" — typed events (<code>text-{start,delta,end}</code>, <code>reasoning-{start,delta,end}</code>, <code>tool-input-{start,delta,available}</code>, <code>tool-output-available</code>, <code>data-&lt;key&gt;</code>) over SSE. Marker header <code>x-vercel-ai-ui-message-stream: v1</code>.</li>
+        <li><strong>ChatKit:</strong> Custom thread-event protocol (<code>ThreadItemDoneEvent</code>, <code>ThreadItemReplacedEvent</code>, <code>ProgressUpdateEvent</code>, <code>ClientEffectEvent</code>, <code>WidgetRootUpdated</code>) — layered on the Responses API server-side.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>6. Where the "renting vs owning" line falls. <span class="summary-tldr">— it's about who controls what users see.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>You own the source.</strong> opencode, pi, Vercel AI Elements (copy-paste), Vercel Chat SDK (template fork). You can patch a bug, customize a render path, host an air-gapped deployment.</li>
+        <li><strong>You compose libraries.</strong> The AI SDK (<code>ai</code> + <code>@ai-sdk/react</code>) and pi-web-ui — runtime npm imports you can wrap.</li>
+        <li><strong>You rent the renderer.</strong> ChatKit. You configure options, embed an iframe, and OpenAI controls every pixel. They ship updates without you redeploying — and they choose what features exist.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>7. Vendor coupling — Vercel "AI SDK" stack is the least coupled. <span class="summary-tldr">— ChatKit is the most.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>AI Elements / AI SDK</strong> — zero Vercel-infrastructure dependencies. Apache-2.0. Works in Vite + any backend.</li>
+        <li><strong>Chat SDK template</strong> — Next-locked but only ~5 single-line Vercel touchpoints (Blob, geo, BotID, OTel, Analytics) — all easily excised.</li>
+        <li><strong>pi-web-ui</strong> — provider-agnostic (OpenAI, Anthropic, Google, Groq, Ollama, LM Studio…). Surgical CORS proxy only for Z-AI / OAuth-Anthropic / Codex.</li>
+        <li><strong>ChatKit</strong> — four hard couplings to OpenAI: <code>cdn.platform.openai.com</code> iframe; <code>platform.openai.com</code> domain allowlist; <code>api.openai.com/v1/chatkit/sessions</code> for managed; Responses-API + Agents-SDK types in every example.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>8. Subagents and parallelism — only opencode surfaces them visually. <span class="summary-tldr">— pi rejects them; ChatGPT/ChatKit hide them.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>opencode</strong> spawns child sessions via the <code>task</code> tool. The parent shows a live "↳ Reading /src/foo.ts" sub-line and a <code>SubagentFooter</code> with Parent / Prev / Next.</li>
+        <li><strong>pi</strong> explicitly calls subagents a non-goal (CLI README). Parallel tool calls keyed by <code>toolCallId</code> in a <code>Map</code>.</li>
+        <li><strong>Vercel Chat SDK</strong> exposes <code>step-start</code> / <code>step-finish</code> parts to mark multi-step agent boundaries but doesn't ship a UI for visualising sub-agent trees.</li>
+        <li><strong>ChatKit</strong> uses <code>thread.item.workflow</code> for multi-step plans; rendering is opaque (inside the iframe).</li>
+      </ul>
+    </div>
+  </details>
+
+  <details>
+    <summary>9. Side-panel artefacts are catching on. <span class="summary-tldr">— a workspace next to chat.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li><strong>Vercel Chat SDK</strong> ships four built-in artifact kinds (text, code, image, sheet) with ProseMirror / CodeMirror / <code>react-data-grid</code> editors, version history, and a 60%-width side pane. Extension point is the <code>Artifact&lt;Kind, Metadata&gt;</code> class.</li>
+        <li><strong>Vercel AI Elements</strong> exposes an <code>Artifact</code> component (Claude/v0-style container) — you bring your own data plumbing.</li>
+        <li><strong>pi-web-ui</strong> has an <code>ArtifactsPanel</code> (HTML / SVG / Markdown previews via a sandboxed iframe).</li>
+        <li><strong>ChatKit's widget DSL</strong> is the same idea expressed differently — server-authored JSON, client-rendered cards / lists / forms / tables, but locked to ChatKit's renderer.</li>
+      </ul>
+    </div>
+  </details>
+
+</section>
+
+<section>
+  <h2>Methodology &amp; gaps</h2>
+
+  <details>
+    <summary>How each surface was studied <span class="summary-tldr">— scope and tooling.</span></summary>
+    <div class="details-body">
+      <dl class="kv">
+        <dt>ChatGPT</dt>
+        <dd>Logged-in free-tier session driven via Playwriter MCP. 4 prompts sent; SSE bodies captured; DOM polled at 100&nbsp;ms / 450&nbsp;ms / 1.2&nbsp;s / final.</dd>
+        <dt>sst/opencode</dt>
+        <dd>Cloned and read; no TUI was launched (would require an LLM key). Findings tied to <code>file:line</code> citations.</dd>
+        <dt>earendil-works/pi</dt>
+        <dd>Two paths captured: (a) <code>pi --export</code> rendered to static HTML and driven in Playwriter; (b) <code>@earendil-works/pi-web-ui</code> npm tarball example installed and run on Vite at <code>localhost:5173</code>. Source for both read in full.</dd>
+        <dt>OpenAI ChatKit</dt>
+        <dd>Three repos cloned + npm package extracted + CDN loader fetched and decoded. Starter app installs cleanly but requires an OpenAI key to run.</dd>
+        <dt>Vercel Chat SDK</dt>
+        <dd><code>vercel/chatbot</code> template cloned (v3.1.0) + docs walked. Not deployed.</dd>
+        <dt>Vercel AI Elements</dt>
+        <dd>Monorepo cloned + per-component source read + 47 registry endpoints surveyed.</dd>
+      </dl>
+    </div>
+  </details>
+
+  <details>
+    <summary>What's missing <span class="summary-tldr">— what would unblock it.</span></summary>
+    <div class="details-body">
+      <ul>
+        <li>ChatGPT's reasoning UI (Thinking / o-series): would need a Plus or Pro account.</li>
+        <li>opencode's animations observed live: would need to launch the TUI with an LLM key.</li>
+        <li>pi web-ui's live streaming (assistant turn finish was unreliable in Playwriter capture): the source already documents the rAF-batched / deep-clone strategy in detail.</li>
+        <li>ChatKit's actual rendered DOM (closed iframe): would need to embed and live-capture; the protocol surface is fully documented.</li>
+      </ul>
+    </div>
+  </details>
+
+</section>
+
+<p class="foot">Tree: <a href="chatgpt/index.html">ChatGPT</a> · <a href="opencode/index.html">opencode</a> · <a href="pi/index.html">pi</a> · <a href="chatkit-js/index.html">ChatKit</a> · <a href="vercel-chat-sdk/index.html">Vercel Chat SDK</a> · <a href="vercel-ai-elements/index.html">Vercel AI Elements</a></p>
+
+</div>
+</body>
+</html>

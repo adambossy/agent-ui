@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vercel Chat SDK — Agent UI Deep Dive</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+
+<p class="crumbs"><a href="../index.html">← Executive summary</a> &nbsp;/&nbsp; Vercel Chat SDK</p>
+
+<header class="page-header">
+  <p class="eyebrow">Next.js template + npm libraries · Open source · MIT</p>
+  <h1>Vercel Chat SDK</h1>
+  <p class="lede">A Next.js application template on top of the Vercel AI SDK. Despite the "SDK" name, the main artifact is the <code>vercel/chatbot</code> template — a reference implementation. The reusable libraries underneath (<code>ai</code>, <code>@ai-sdk/react</code>, <code>streamdown</code>, <code>resumable-stream</code>) are platform-neutral; the template itself is Next-locked but has only ~5 single-line Vercel touchpoints.</p>
+</header>
+
+<aside class="callout callout--muted">
+  <strong>Naming caveat.</strong> Vercel ships <em>two</em> things sometimes called "Chat SDK": (1) <code>chat-sdk.dev</code> for a multi-platform bot SDK (Slack/Teams/Discord); (2) <code>chatbot.ai-sdk.dev</code> / <code>github.com/vercel/chatbot</code> for the chatbot template on the AI SDK. This page is about #2 — the template the user pointed at. Cloned (depth 1) to <span class="path">/Users/adambossy/code/agent_ui/vercel-chat-sdk/repo/</span> at version 3.1.0.
+</aside>
+
+<aside class="callout callout--good">
+  <strong>Live capture (Phase 2).</strong> The template was launched locally with Postgres in Docker, the AI Gateway provider swapped for direct Anthropic (Claude Sonnet 4.5 as default), and driven in Playwriter. Two turns sent: <em>weather</em> (custom <code>&lt;Weather&gt;</code> card from <code>tool-getWeather</code>) and <em>"create a markdown document about three Roman emperors"</em> (full artifact panel with 1,014 <code>data-textDelta</code> events). Live SSE saved at <span class="path">/Users/adambossy/code/agent_ui/vercel-chat-sdk/sse-turn2-artifact.txt</span> (70 KB).
+</aside>
+
+<div class="gallery">
+  <figure><img src="screen-01-loaded.png" alt="Chat SDK empty state"><figcaption>Empty state: "What can I help with?", four suggestion cards (Next.js advantages, Dijkstra, Silicon Valley essay, San Francisco weather), composer with attachment / model picker (Claude Sonnet 4.5) / send button.</figcaption></figure>
+  <figure><img src="screen-03-t-3s.png" alt="Weather tool card"><figcaption>Weather turn: custom <code>&lt;Weather&gt;</code> card (blue gradient, location, temperature, hourly forecast, sunrise/sunset) followed by streamed assistant text ("The current weather in San Francisco is 15.8°C…"). Sparkle avatar to the left of the assistant block. Total turn time ~3 s.</figcaption></figure>
+  <figure><img src="screen-05-artifact-final.png" alt="Artifact panel"><figcaption>Artifact panel: 60% right pane shows the live-rendered markdown document with H1/H2/H3 + bullet lists. Left pane shows the chat history with the artifact preview card collapsed inline. Top toolbar (close/share/refresh) + right-edge action rail (copy, expand, etc.).</figcaption></figure>
+</div>
+
+<details>
+  <summary>Live SSE event-type counts (artifact turn) <span class="summary-tldr">— matches the protocol documented from source.</span></summary>
+  <div class="details-body">
+
+<pre><code>start                  : 1   // turn open
+start-step             : 2   // 2 multi-step boundaries
+tool-input-start       : 1   // createDocument args begin
+tool-input-delta       : 3   // streamed args
+tool-input-available   : 1   // args complete
+data-kind              : 1   // artifact kind hint ("text")
+data-id                : 1   // artifact id
+data-title             : 1   // artifact title
+data-clear             : 1   // clear any existing content
+data-textDelta         : 1014 // streamed markdown body
+tool-output-available  : 1   // tool returned (artifact saved)
+data-finish            : 1   // artifact stream complete
+text-start             : 1   // post-artifact assistant text begins
+text-delta             : 2   // assistant followup text
+text-end               : 1
+finish-step            : 2
+finish                 : 1   // turn close</code></pre>
+
+    <p>Total: 70 KB SSE for one turn that produced an artifact + assistant followup. The <code>data-textDelta</code> channel is what feeds the streaming markdown inside the side pane; the assistant <code>text-*</code> events feed the in-chat message under the artifact preview card.</p>
+  </div>
+</details>
+
+<details>
+  <summary>How the live setup was wired <span class="summary-tldr">— minimal Vercel-coupling demo.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li>Cloned <code>vercel/chatbot</code> at v3.1.0; <code>npm install --legacy-peer-deps</code> (template uses pnpm; npm works).</li>
+      <li>Replaced <code>lib/ai/providers.ts</code> <code>gateway.languageModel</code> with <code>anthropic(modelId)</code> from <code>@ai-sdk/anthropic</code> — kept the same <code>getLanguageModel</code> / <code>getTitleModel</code> signature.</li>
+      <li>Replaced <code>lib/ai/models.ts</code>: chat models are now Claude Sonnet 4.5 / Opus 4.1 / Haiku 4.5; <code>getCapabilities()</code> stubbed with hardcoded <code>{ tools: true, vision: true }</code> per model (so the Vercel-Gateway-only capabilities probe isn't called).</li>
+      <li>Postgres in Docker: <code>docker run -d --name chatsdk-pg -e POSTGRES_PASSWORD=chatsdk -e POSTGRES_USER=chatsdk -e POSTGRES_DB=chatsdk -p 5544:5432 postgres:16-alpine</code>.</li>
+      <li><code>.env</code> with <code>AUTH_SECRET</code> (openssl rand), <code>POSTGRES_URL=postgres://chatsdk:chatsdk@localhost:5544/chatsdk</code>, <code>ANTHROPIC_API_KEY</code>.</li>
+      <li><code>npx tsx lib/db/migrate.ts</code> ran the Drizzle migrations.</li>
+      <li><code>npm run dev</code> — Next.js 16.2 on port 3001 (3000 was in use), ready in 1.2&nbsp;s.</li>
+      <li><strong>No</strong> <code>BLOB_READ_WRITE_TOKEN</code>, <strong>no</strong> <code>REDIS_URL</code>, <strong>no</strong> Vercel CLI / OIDC / Gateway. Everything Vercel-specific in the template (Blob, Geo, BotID, OTel, Analytics) was left as-is and the relevant features (file upload, geo-aware prompts, anti-bot, resumable streams) are inactive but don't block the rest. Proves the template runs cleanly on a non-Vercel host with ~3 single-line code edits.</li>
+    </ul>
+  </div>
+</details>
+
+<div class="toc">
+  <h3>On this page</h3>
+  <ol>
+    <li><a href="#what">What it is</a></li>
+    <li><a href="#deps">Substrate (the actual libraries)</a></li>
+    <li><a href="#model">UI message model</a></li>
+    <li><a href="#streaming">Streaming protocol</a></li>
+    <li><a href="#reasoning">Reasoning rendering</a></li>
+    <li><a href="#tools">Tool calls + HITL approval</a></li>
+    <li><a href="#artifacts">Artifacts (the killer feature)</a></li>
+    <li><a href="#persistence">Persistence + auth</a></li>
+    <li><a href="#coupling">Vercel coupling — itemised</a></li>
+    <li><a href="#independent">Using it independently</a></li>
+  </ol>
+</div>
+
+<section id="what">
+<h2>1. What it is</h2>
+
+<p>"Chatbot" is a free, MIT-licensed Next.js application template demonstrating how to build a ChatGPT-style web app on top of the Vercel AI SDK. It ships streaming chat UI, multi-model selection (via AI Gateway), message persistence, Auth.js login, file uploads, generative-UI <em>artifacts</em> (text/code/image/sheet side-panel documents), tool-call rendering with human-in-the-loop approval, reasoning-token rendering, and resumable streams.</p>
+
+<div class="callout">
+  <strong>The mental model:</strong> the "Chat SDK" is a constellation: <code>ai</code> + <code>@ai-sdk/react</code> + <code>streamdown</code> + AI Elements + <code>resumable-stream</code> — packaged into a Next.js template. There is no top-level <code>chat-sdk</code> npm package wrapping it.
+</div>
+</section>
+
+<section id="deps">
+<h2>2. The substrate</h2>
+
+<table>
+  <tr><th>Package</th><th>Version</th><th>Role</th></tr>
+  <tr><td><code>ai</code></td><td>6.0.116</td><td>Core: <code>streamText</code>, <code>createUIMessageStream</code>, <code>tool</code>, <code>UIMessage</code>, <code>convertToModelMessages</code>, <code>gateway</code>. <strong>Framework-agnostic.</strong></td></tr>
+  <tr><td><code>@ai-sdk/react</code></td><td>3.0.118</td><td><code>useChat</code>, <code>UseChatHelpers</code>, <code>DefaultChatTransport</code>, <code>addToolApprovalResponse</code>.</td></tr>
+  <tr><td><code>streamdown</code> + 4 plugins</td><td>^2.3.0</td><td>Streaming-safe markdown renderer (code/math/mermaid/CJK).</td></tr>
+  <tr><td><code>resumable-stream</code></td><td>^2.2.10</td><td>Redis-backed SSE resume. <strong>OSS, not Vercel-locked.</strong></td></tr>
+  <tr><td><code>next</code> + <code>next-auth</code></td><td>16.2.0 / 5.0-beta</td><td>Template-only.</td></tr>
+  <tr><td><code>drizzle-orm</code> + <code>postgres</code></td><td>—</td><td>Postgres DB layer.</td></tr>
+  <tr><td><code>@vercel/blob, /functions, /otel, /analytics, botid</code></td><td>—</td><td><strong>Vercel touchpoints</strong> — see §9.</td></tr>
+</table>
+
+<p>UI primitives come from <a href="../vercel-ai-elements/index.html">Vercel AI Elements</a> — a shadcn-style copy-paste registry. The template vendors them into <code>components/ai-elements/*.tsx</code>.</p>
+</section>
+
+<section id="model">
+<h2>3. UI message model</h2>
+
+<p>Canonical: <code>UIMessage&lt;MessageMetadata, CustomUIDataTypes, ChatTools&gt;</code> from <code>ai</code>. Template binding at <code>lib/types.ts:10-49</code>:</p>
+
+<pre><code>export type ChatTools = {
+  getWeather: InferUITool&lt;typeof getWeather&gt;;
+  createDocument: InferUITool&lt;ReturnType&lt;typeof createDocument&gt;&gt;;
+  updateDocument: InferUITool&lt;ReturnType&lt;typeof updateDocument&gt;&gt;;
+  requestSuggestions: InferUITool&lt;ReturnType&lt;typeof requestSuggestions&gt;&gt;;
+};
+export type CustomUIDataTypes = {
+  textDelta: string; imageDelta: string; sheetDelta: string; codeDelta: string;
+  suggestion: Suggestion; appendMessage: string;
+  id: string; title: string; kind: ArtifactKind;
+  clear: null; finish: null; "chat-title": string;
+};
+export type ChatMessage = UIMessage&lt;MessageMetadata, CustomUIDataTypes, ChatTools&gt;;</code></pre>
+
+<p>Each message: <code>id</code>, <code>role</code>, and a <code>parts: UIMessagePart[]</code> array. The old <code>content</code> string was removed in v1.1.10 (DB renamed to <code>Message_v2</code>, <code>lib/db/schema.ts:42-52</code>).</p>
+
+<table>
+  <tr><th>Part type</th><th>Notes</th></tr>
+  <tr><td><code>"text"</code></td><td><code>{ text }</code></td></tr>
+  <tr><td><code>"reasoning"</code></td><td><code>{ text, state? }</code></td></tr>
+  <tr><td><code>"tool-&lt;toolName&gt;"</code></td><td>One per static tool; <code>toolCallId, state, input, output</code>, optional <code>approval</code></td></tr>
+  <tr><td><code>"dynamic-tool"</code></td><td>Untyped tools</td></tr>
+  <tr><td><code>"file"</code></td><td><code>{ filename, mediaType, url }</code> attachments</td></tr>
+  <tr><td><code>"source-url"</code> / <code>"source-document"</code></td><td>Citations</td></tr>
+  <tr><td><code>"step-start"</code> / <code>"step-finish"</code></td><td>Multi-step agent boundaries</td></tr>
+  <tr><td><code>"data-&lt;key&gt;"</code></td><td>Custom channels — e.g. <code>data-textDelta</code>, <code>data-codeDelta</code>, <code>data-chat-title</code>, …</td></tr>
+</table>
+</section>
+
+<section id="streaming">
+<h2>4. Streaming protocol</h2>
+
+<p><strong>HTTP Server-Sent Events</strong> carrying the AI SDK's UI Message Stream v1. Frames are <code>data:</code> lines terminated by <code>data: [DONE]</code>. The protocol-version header is <code>x-vercel-ai-ui-message-stream: v1</code> — a content-type marker only, parsed by <code>@ai-sdk/react</code> client-side. <strong>Not a Vercel-platform protocol.</strong></p>
+
+<details open>
+  <summary>Event types <span class="summary-tldr">— the full vocabulary.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li><code>start</code> / <code>finish</code> / <code>abort</code> / <code>error</code></li>
+      <li><code>start-step</code> / <code>finish-step</code></li>
+      <li><code>text-start</code> / <code>text-delta</code> / <code>text-end</code></li>
+      <li><code>reasoning-start</code> / <code>reasoning-delta</code> / <code>reasoning-end</code></li>
+      <li><code>source-url</code> / <code>source-document</code></li>
+      <li><code>file</code></li>
+      <li><code>tool-input-start</code> / <code>tool-input-delta</code> / <code>tool-input-available</code> / <code>tool-output-available</code> (plus approval states)</li>
+      <li><code>data-&lt;key&gt;</code> custom channels</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Server entry &amp; client wiring <span class="summary-tldr">— minimum integration.</span></summary>
+  <div class="details-body">
+    <p>Server (<code>app/(chat)/api/chat/route.ts:191-244, 307-327</code>):</p>
+<pre><code>const stream = createUIMessageStream({
+  execute: async ({ writer }) =&gt; {
+    const result = streamText({ model, messages, tools, … });
+    writer.merge(result.toUIMessageStream({ sendReasoning }));
+    writer.write({ type: "data-chat-title", data: title });
+  },
+});
+return createUIMessageStreamResponse({ stream, consumeSseStream });</code></pre>
+    <p>Client:</p>
+<pre><code>useChat({ transport: new DefaultChatTransport({ api: "/api/chat" }) })</code></pre>
+    <p>A separate <code>data-*</code> channel feeds artifact updates via <code>DataStreamHandler</code> (<code>components/chat/data-stream-handler.tsx:11-91</code>).</p>
+  </div>
+</details>
+
+<details>
+  <summary>Resumable streams <span class="summary-tldr">— Redis + Next <code>after()</code>.</span></summary>
+  <div class="details-body">
+    <p><code>route.ts:50-58, 307-326</code> and <code>lib/db/schema.ts:120-136</code> wire the OSS <code>resumable-stream</code> npm package to Redis (<code>REDIS_URL</code>/<code>KV_URL</code>) and a <code>Stream</code> Postgres row. Next's <code>after()</code> keeps the route alive past response close so the stream can finish writing to Redis. Both the protocol and the package are open source — Vercel-independent.</p>
+  </div>
+</details>
+</section>
+
+<section id="reasoning">
+<h2>5. Reasoning rendering</h2>
+
+<p>Reasoning is just another part type. Server toggles emission via <code>result.toUIMessageStream({ sendReasoning: isReasoningModel })</code> (<code>app/(chat)/api/chat/route.ts:243</code>). Client merges all <code>reasoning</code> parts of a message (<code>message.tsx:84-114</code>) and renders through AI Elements' <code>&lt;Reasoning&gt;</code> primitive (<code>components/ai-elements/reasoning.tsx:58-149</code>):</p>
+
+<ul>
+  <li>Radix Collapsible.</li>
+  <li>Auto-open while <code>isStreaming</code>.</li>
+  <li>Duration tracking ("Thought for N seconds").</li>
+  <li>Auto-close 1&nbsp;s after streaming ends.</li>
+  <li>Body rendered via <code>&lt;Streamdown&gt;</code> (streaming markdown).</li>
+</ul>
+
+<p><strong>Yes — Chat SDK ships built-in collapsible reasoning components.</strong></p>
+</section>
+
+<section id="tools">
+<h2>6. Tool calls + HITL approval</h2>
+
+<p>Modeled as <code>tool-&lt;name&gt;</code> parts with a fixed state machine (<code>components/ai-elements/tool.tsx:48-66</code>):</p>
+
+<pre><code>"approval-requested" | "approval-responded"
+| "input-streaming"  | "input-available"
+| "output-available" | "output-denied" | "output-error"</code></pre>
+
+<p>Generic <code>&lt;Tool&gt;</code> / <code>&lt;ToolHeader&gt;</code> / <code>&lt;ToolInput&gt;</code> / <code>&lt;ToolOutput&gt;</code> are provided (Radix Collapsible + JSON code-block), but the template overrides per-tool — e.g. <code>tool-getWeather</code> renders a custom <code>&lt;Weather&gt;</code> card on <code>output-available</code> and an Allow/Deny prompt on <code>approval-requested</code> (<code>message.tsx:131-218</code>); <code>tool-createDocument</code> renders a <code>&lt;DocumentPreview&gt;</code>.</p>
+
+<p><strong>Tool-approval is built into the AI SDK:</strong> <code>needsApproval: true</code> on tool definition pauses execution; client calls <code>addToolApprovalResponse({ id, approved, reason? })</code> from <code>useChat</code>; <code>useChat</code> is configured with <code>sendAutomaticallyWhen</code> to auto-continue on approve (<code>hooks/use-active-chat.tsx:113-153</code>).</p>
+</section>
+
+<section id="artifacts">
+<h2>7. Artifacts — the killer feature</h2>
+
+<p>Side-panel "documents" the model can create/edit during a conversation. Four kinds ship: <code>text</code>, <code>code</code>, <code>image</code>, <code>sheet</code> (<code>lib/artifacts/server.ts:99</code>, <code>components/chat/artifact.tsx:32-38</code>).</p>
+
+<details open>
+  <summary>End-to-end flow <span class="summary-tldr">— model call → side-panel render.</span></summary>
+  <div class="details-body">
+    <ol>
+      <li>Model calls <code>createDocument</code>/<code>updateDocument</code> tool.</li>
+      <li>Handler emits <code>data-id</code> / <code>data-title</code> / <code>data-kind</code> parts then delegates to a per-kind <code>DocumentHandler</code> (<code>lib/artifacts/server.ts:35-91</code>).</li>
+      <li>Handler streams content via <code>streamText</code> and writes per-kind deltas (e.g. text artifact emits <code>{ type: "data-textDelta", data: chunk, transient: true }</code> at <code>artifacts/text/server.ts:22-26</code>).</li>
+      <li>Client <code>DataStreamHandler</code> routes deltas to the matching artifact's <code>onStreamPart</code>.</li>
+      <li>On <code>data-finish</code>, content is persisted to a versioned <code>Document</code> table (PK <code>(id, createdAt)</code>).</li>
+    </ol>
+    <p>The <code>&lt;Artifact&gt;</code> panel (<code>components/chat/artifact.tsx</code>) renders a 60%-width side pane with ProseMirror text editor, CodeMirror code editor, <code>react-data-grid</code> sheets, version history with diff, and a toolbar. Extension point is the <code>Artifact&lt;Kind, Metadata&gt;</code> class in <code>components/chat/create-artifact.tsx</code>.</p>
+  </div>
+</details>
+</section>
+
+<section id="persistence">
+<h2>8. Persistence + auth</h2>
+
+<ul>
+  <li><strong>Persistence.</strong> Postgres via <code>postgres</code> + Drizzle ORM (<code>lib/db/queries.ts:36-37</code>). Schema (<code>lib/db/schema.ts</code>): <code>User</code>, <code>Chat</code>, <code>Message_v2 (parts json)</code>, <code>Vote_v2</code>, <code>Document</code>, <code>Suggestion</code>, <code>Stream</code>. Migrations run at build. Required, not pluggable behind an interface — replacing Postgres = rewriting <code>queries.ts</code>.</li>
+  <li><strong>File storage.</strong> <code>@vercel/blob</code>'s <code>put()</code> (<code>app/(chat)/api/files/upload/route.ts:1, 52-55</code>) — Vercel-locked unless swapped.</li>
+  <li><strong>Auth.</strong> Auth.js v5 hard-wired. <code>app/(auth)/auth.ts:1-99</code> configures email-password + guest <code>Credentials</code> providers; <code>proxy.ts</code> redirects unauth'd users to <code>/api/auth/guest</code>. Every server entrypoint calls <code>auth()</code> and 401s on null session. Tool factories and document handlers take <code>session: Session</code> from <code>next-auth</code> by type (<code>lib/artifacts/server.ts:22</code>), so swapping auth means rewriting types in ~6 files.</li>
+</ul>
+</section>
+
+<section id="coupling">
+<h2>9. Vercel coupling — itemised</h2>
+
+<p>Three layers, very different stories:</p>
+
+<ul>
+  <li><strong><code>ai</code> + <code>@ai-sdk/react</code> + provider packages:</strong> <span class="tag tag--good">effectively zero Vercel coupling</span>. Pure TS. Runs on Node/Deno/Bun/CF Workers/browser. SSE is standard <code>Response</code> streams.</li>
+  <li><strong>AI Gateway</strong> (<code>gateway.languageModel(modelId)</code> in <code>lib/ai/providers.ts:1-23</code>): off-Vercel works with <code>AI_GATEWAY_API_KEY</code>; one-line swap to direct providers (<code>openai</code>, <code>anthropic</code>, ...). <span class="tag">Optional</span></li>
+  <li><strong>The template itself</strong>:</li>
+</ul>
+
+<table>
+  <tr><th>Surface</th><th>Vercel code</th><th>Required?</th><th>Effort to replace</th></tr>
+  <tr><td>File uploads</td><td><code>put</code> from <code>@vercel/blob</code> (<code>app/(chat)/api/files/upload/route.ts:1,52-55</code>)</td><td>If you keep uploads</td><td>Swap for S3/R2/Supabase — ~20 LOC</td></tr>
+  <tr><td>Geo + IP</td><td><code>geolocation</code>, <code>ipAddress</code> from <code>@vercel/functions</code> (<code>route.ts:1,87,159</code>)</td><td>For system-prompt + rate-limit</td><td>Read <code>x-forwarded-for</code> headers — trivial</td></tr>
+  <tr><td>BotID</td><td><code>withBotId</code>/<code>checkBotId</code> from <code>botid</code> (<code>next.config.ts:1,54</code>, <code>route.ts:10,75</code>)</td><td>Only meaningful on Vercel (Kasada)</td><td>Delete or swap for Turnstile — trivial</td></tr>
+  <tr><td>OTel</td><td><code>@vercel/otel</code> <code>registerOTel</code> (<code>instrumentation.ts:1-5</code>)</td><td>Optional</td><td>Vanilla <code>@opentelemetry/sdk-node</code></td></tr>
+  <tr><td>Analytics</td><td><code>@vercel/analytics</code></td><td>Optional</td><td>Delete import</td></tr>
+  <tr><td><code>after()</code> (resume)</td><td><code>import { after } from "next/server"</code> (<code>route.ts:11</code>)</td><td>Required for resumable streams</td><td>Use platform <code>waitUntil</code></td></tr>
+  <tr><td>AI Gateway OIDC</td><td>Automatic on Vercel</td><td>Optional</td><td>Use <code>AI_GATEWAY_API_KEY</code> or direct providers</td></tr>
+  <tr><td>Streaming protocol</td><td><code>x-vercel-ai-ui-message-stream: v1</code></td><td>Just a content-type marker</td><td>None — works anywhere</td></tr>
+  <tr><td><code>vercel.json</code></td><td><code>{ "framework": "nextjs" }</code> only</td><td>Not required</td><td>Delete</td></tr>
+</table>
+
+<div class="callout callout--good">
+  <strong>Nothing in the streaming wire protocol requires Vercel hosting.</strong> The header is purely a marker the client lib reads. Can it run on Cloudflare / Render / a VM? <strong>Yes</strong> — a Node VM / Render / Fly / Railway needs the ~5 single-line swaps above. CF Workers needs a Next.js Pages adapter; the API route's <code>createUIMessageStream</code> + <code>createUIMessageStreamResponse</code> return a standard <code>Response</code> with a streaming body and is Workers-compatible.
+</div>
+</section>
+
+<section id="independent">
+<h2>10. Using it independently</h2>
+
+<p>Three options for non-Next.js stacks:</p>
+
+<details open>
+  <summary><strong>Option 1 (recommended) — skip the template; use the AI SDK directly.</strong> <span class="summary-tldr">— wins for non-Next stacks.</span></summary>
+  <div class="details-body">
+    <p>~80% of what makes Chat SDK feel powerful is <code>useChat</code>, <code>createUIMessageStream</code>, <code>streamText</code>, plus AI Elements components — none Next- or Vercel-bound:</p>
+<pre><code>// server (Hono/Express/Workers):
+const stream = createUIMessageStream({ execute: ({ writer }) =&gt; {
+  const r = streamText({
+    model: openai("gpt-4o"),
+    messages: convertToModelMessages(messages),
+  });
+  writer.merge(r.toUIMessageStream({ sendReasoning: true }));
+}});
+return createUIMessageStreamResponse({ stream });</code></pre>
+<pre><code>// client (Vite + React):
+const { messages, sendMessage, addToolApprovalResponse, status } =
+  useChat({ transport: new DefaultChatTransport({ api: "/api/chat" }) });</code></pre>
+    <p>Then copy the AI Elements components you want (<code>Conversation</code>, <code>Message</code>, <code>Reasoning</code>, <code>Tool</code>, <code>PromptInput</code>) — pure React + Radix + Tailwind + shadcn.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Option 2 — lift specific modules from the template.</summary>
+  <div class="details-body">
+    <p>Highest-value pieces:</p>
+    <ul>
+      <li>Artifact panel system (<code>components/chat/artifact.tsx</code>, <code>data-stream-handler.tsx</code>, <code>lib/artifacts/server.ts</code>, <code>artifacts/*/{client,server}.ts</code>) — 1 file per kind, only <code>next/navigation</code> to swap.</li>
+      <li>Tool-approval wiring (<code>hooks/use-active-chat.tsx:113-153</code> + <code>addToolApprovalResponse</code> rendering in <code>message.tsx</code>).</li>
+      <li>Resumable streams (Redis + <code>resumable-stream</code> + <code>Stream</code> table).</li>
+      <li>Reasoning auto-collapse (<code>components/ai-elements/reasoning.tsx</code>).</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Option 3 — run the template as-is, elsewhere.</summary>
+  <div class="details-body">
+    <p>Clone, remove the 5 Vercel touchpoints, point <code>POSTGRES_URL</code>/<code>REDIS_URL</code> anywhere, set <code>AI_GATEWAY_API_KEY</code> or swap providers. ~half a day for someone fluent in Next.</p>
+  </div>
+</details>
+
+<p><strong>Recommendation:</strong> for a non-Next.js stack, Option 1 wins by a wide margin. The "Chat SDK" is really the AI SDK + a Next demo; install <code>ai</code> + <code>@ai-sdk/react</code>, copy the AI Elements components you need, write a ~25-line API handler, skip <code>next-auth</code>, Drizzle, and the rest of the template's opinions. Lift the artifact/tool-approval/reasoning modules (Option 2) only if you specifically want those UX patterns — they're the genuinely novel pieces.</p>
+</section>
+
+<section>
+<h2>Artifacts</h2>
+<ul>
+  <li><a href="../../vercel-chat-sdk/FINDINGS.md">FINDINGS.md</a> — full raw notes.</li>
+  <li><span class="path">/Users/adambossy/code/agent_ui/vercel-chat-sdk/repo/</span> — cloned template at v3.1.0.</li>
+</ul>
+</section>
+
+<p class="foot"><a href="../index.html">← Back to executive summary</a></p>
+
+</div>
+</body>
+</html>

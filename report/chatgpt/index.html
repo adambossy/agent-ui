@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChatGPT — Agent UI Deep Dive</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="container">
+
+<p class="crumbs"><a href="../index.html">← Executive summary</a> &nbsp;/&nbsp; ChatGPT</p>
+
+<header class="page-header">
+  <p class="eyebrow">Web · Closed source · gpt-5-5 (free tier)</p>
+  <h1>ChatGPT</h1>
+  <p class="lede">A single transcript stream of JSON-Patch ops, mutated in place. Tool calls and reasoning are completely absent from the visible UI on free tier — only inline citation pills hint at the agent loop underneath.</p>
+</header>
+
+<aside class="callout callout--muted">
+  <strong>Capture conditions.</strong> Logged-in free-tier session. Model picker exposed a single option (<code>ChatGPT</code>); all turns landed on slug <code>gpt-5-5</code>. No GPT‑5 Thinking / o-series available. 4 prompts sent in one conversation; per-turn SSE bodies (17–210&nbsp;KB) and DOM polled at 100&nbsp;ms / 450&nbsp;ms / 1.2&nbsp;s / final. <a href="screens/40-final-conversation.png">Final conversation screenshot</a>.
+</aside>
+
+<section>
+<h2>1. Turn lifecycle (observed)</h2>
+
+<table>
+  <tr><th>t after Enter</th><th>UI state</th></tr>
+  <tr><td><code>0 ms</code></td><td>User bubble appears.</td></tr>
+  <tr><td><code>50–300 ms</code></td><td>Placeholder element: <code>&lt;div id="request-placeholder-request-WEB:&lt;conv&gt;-&lt;n&gt;"&gt;</code>. <code>textLen === 0</code>. No spinner, no text.</td></tr>
+  <tr><td><code>300–450 ms</code></td><td>Placeholder replaced by a real <code>[data-message-id]</code>. Inner container has class <code>streaming-animation</code> alongside <code>markdown prose</code>. Tokens begin appearing.</td></tr>
+  <tr><td><code>450 ms → end</code></td><td>Content mutates in place. Citations append as <code>&lt;span data-testid="webpage-citation-pill"&gt;</code> with <code>animate-[show_150ms_ease-in]</code> fade-in.</td></tr>
+  <tr><td><code>End</code></td><td><code>.streaming-animation</code> removed. Sidebar updates with auto-generated conversation title.</td></tr>
+</table>
+
+<p>Empirical end-to-end durations: 2.5–7&nbsp;s for the turns sent here. A multi-step web-search turn (6 cities × 2 stats) finished in 2.5&nbsp;s including 6 citations rendered.</p>
+
+<div class="gallery">
+  <figure><img src="screens/04-immediately-after-send.png" alt="ChatGPT immediately after send"><figcaption>~400ms after Enter — placeholder still visible, no streamed tokens yet.</figcaption></figure>
+  <figure><img src="screens/22-t3-450ms.png" alt="ChatGPT 450ms into streaming"><figcaption>~450ms — first tokens streaming; citations not yet attached.</figcaption></figure>
+  <figure><img src="screens/23-t3-2450ms.png" alt="ChatGPT after 2.5s"><figcaption>~2.5s — turn complete with 6 citations.</figcaption></figure>
+</div>
+</section>
+
+<section>
+<h2>2. Streaming protocol (SSE)</h2>
+
+<dl class="kv">
+  <dt>URL</dt>
+  <dd><code>POST https://chatgpt.com/backend-api/f/conversation</code></dd>
+  <dt>Content-Type</dt>
+  <dd><code>text/event-stream; charset=utf-8</code></dd>
+  <dt>Frame separator</dt>
+  <dd>Standard SSE: <code>\n\n</code></dd>
+  <dt>Encoding version</dt>
+  <dd>First frame: <code>event: delta_encoding</code> · <code>data: "v1"</code></dd>
+</dl>
+
+<details open>
+  <summary>Record types observed <span class="summary-tldr">— the full vocabulary across 4 turns.</span></summary>
+  <div class="details-body">
+
+  <table>
+    <tr><th>Record</th><th>Purpose</th></tr>
+    <tr><td><code>event: delta_encoding</code></td><td>Version marker (always first).</td></tr>
+    <tr><td><code>resume_conversation_token</code></td><td>JWT (5&nbsp;min TTL) carrying conduit UUID, cluster, turn topic ID. Allows reattach on disconnect.</td></tr>
+    <tr><td><code>input_message</code></td><td>Echo of the user message including <code>metadata.resolved_model_slug</code>, parent ID, useragent.</td></tr>
+    <tr><td><code>event: delta</code> (initial)</td><td><code>{"p": "", "o": "add", "v": {"message": {…}}}</code> — first add of an assistant or hidden-system message.</td></tr>
+    <tr><td><code>event: delta</code> (subsequent)</td><td>JSON-Patch ops <code>replace</code> / <code>append</code> / <code>patch</code> against <code>/message/...</code> paths.</td></tr>
+    <tr><td><code>message_marker</code> <code>user_visible_token</code></td><td>Assistant message becomes user-visible.</td></tr>
+    <tr><td><code>message_marker</code> <code>final_channel_token</code></td><td>Final-channel content begins (vs. hidden channels).</td></tr>
+    <tr><td><code>search_model_queries</code></td><td>Tool call payload. Inside a tool-role message: <code>author.role="tool", author.name="web.run"</code>. <code>queries: string[]</code> runs in parallel.</td></tr>
+    <tr><td><code>message_marker</code> <code>last_token</code></td><td>Last token streamed.</td></tr>
+    <tr><td><code>stop</code></td><td>Stream termination marker.</td></tr>
+    <tr><td><code>server_ste_metadata</code></td><td>Post-turn telemetry: plan, model slug, tool_invoked, autoswitch flags, region.</td></tr>
+    <tr><td><code>message_stream_complete</code></td><td>End of HTTP stream.</td></tr>
+    <tr><td><code>conversation_detail_metadata</code></td><td>Rate-limit and capability snapshot.</td></tr>
+    <tr><td><code>ads</code> / <code>single_advertiser_ad_unit</code> / <code>url</code></td><td>Ad slots delivered in the same SSE channel (free tier).</td></tr>
+  </table>
+
+  </div>
+</details>
+
+<details>
+  <summary>JSON-Patch delta example <span class="summary-tldr">— from the math turn (no web search).</span></summary>
+  <div class="details-body">
+
+<pre><code>{"p": "", "o": "patch", "v": [
+  {"p": "/message/content/parts/0", "o": "append",
+   "v": "\\boxed{\\$563.06}\n\\]"},
+  {"p": "/message/status",          "o": "replace",
+   "v": "finished_successfully"},
+  {"p": "/message/end_turn",        "o": "replace",
+   "v": true},
+  {"p": "/message/metadata",        "o": "append",
+   "v": {"is_complete": true,
+         "search_result_groups": [],
+         "finish_details": {"type": "stop", "stop_tokens": [200002]},
+         "can_save": true}}
+]}</code></pre>
+
+  <p>The client keeps an in-memory message envelope and applies a tiny patch-stream to it. Markdown text is appended into <code>/message/content/parts/0</code> as one string; the renderer re-tokenizes and re-paints on each append, with the <code>streaming-animation</code> class on the wrapper driving the blinking-caret CSS while patches keep coming.</p>
+
+  </div>
+</details>
+
+<details>
+  <summary>Raw SSE bodies <span class="summary-tldr">— captured from live runs.</span></summary>
+  <div class="details-body">
+    <ul>
+      <li><span class="path">/Users/adambossy/code/agent_ui/chatgpt/sse-turn4-math.txt</span> — 17 KB, 55 events, full envelope for a no-tool turn.</li>
+      <li><span class="path">/Users/adambossy/code/agent_ui/chatgpt/sse-turn3.txt</span> — 50 KB (truncated from 210 KB), 6-city + population search turn including two chained <code>web.run</code> tool messages.</li>
+    </ul>
+  </div>
+</details>
+</section>
+
+<section>
+<h2>3. Tool-call rendering</h2>
+
+<p>The defining decision: <strong>tool calls are not rendered in the visible UI.</strong> They live entirely in the SSE stream and appear in the assistant message only as inline citation pills.</p>
+
+<table>
+  <tr><th>Surface</th><th>Where</th></tr>
+  <tr><td>Pre-stream placeholder</td><td><code>&lt;div id="request-placeholder-request-WEB:&lt;conv&gt;-&lt;idx&gt;"&gt;</code> — empty container, ~50–300 ms lifetime. The token <code>WEB</code> in the id is hard-coded regardless of whether web search will actually run.</td></tr>
+  <tr><td>In-flight tool message</td><td>Hidden. SSE delta carries an assistant message with <code>author.role="tool"</code>, <code>author.name="web.run"</code>, and <code>metadata.search_model_queries.queries</code>. Base envelope sets <code>metadata.is_visually_hidden_from_conversation: true</code>. No DOM element created.</td></tr>
+  <tr><td>Tool argument display</td><td>None in visible UI. Only SSE exposes the queries array.</td></tr>
+  <tr><td>Tool result rendering</td><td>None as standalone card. Folded into the next assistant message; surfaces only as citation pills.</td></tr>
+  <tr><td>Citation pill</td><td><code>&lt;span data-testid="webpage-citation-pill" style="width: 102px;"&gt;</code> containing an <code>&lt;a target="_blank" rel="noopener"&gt;</code>. Per-source width with <code>max-w-[15ch]</code> truncate. 150 ms fade-in. A <code>+1</code> on the right indicates an additional source bundled into the citation.</td></tr>
+  <tr><td>Entity highlight</td><td><code>&lt;span class="hover:entity-accent entity-underline inline cursor-pointer"&gt;</code>. Underlined on hover, clickable, tied to SSE <code>content_references[].type === "entity"</code>.</td></tr>
+</table>
+
+<details>
+  <summary>Parallel + sequential tool calls (observed) <span class="summary-tldr">— 6 queries in one call, then a chained second call.</span></summary>
+  <div class="details-body">
+    <p>The 6-city / 3-stat search turn contained <strong>two</strong> distinct <code>web.run</code> tool messages, linked via <code>parent_id</code>:</p>
+<pre>turn assistant a44ce553 (hidden)
+ └─ tool web.run e4ec743e — queries=[6 items: weather × 3 + population × 3]   ← parallel within one call
+     └─ tool web.run 0c546de1 — queries=[3 items: refined weather queries]    ← sequential after
+        └─ final assistant 56aed19b — the user-visible answer w/ 6 citations</pre>
+    <p>The agent loop emits a single tool call whose payload contains <em>multiple parallel sub-queries</em>, then chains another tool message sequentially when another round is needed. The UI hides every intermediate node.</p>
+  </div>
+</details>
+</section>
+
+<section>
+<h2>4. Reasoning rendering</h2>
+
+<p><strong>Not exposed on the free-tier GPT-5 (Auto) path.</strong> The <code>server_ste_metadata</code> event reports:</p>
+
+<pre><code>"did_auto_switch_to_reasoning": false,
+"auto_switcher_race_winner": null,
+"is_autoswitcher_enabled": false</code></pre>
+
+<p>No hidden reasoning channel deltas, no "Thought for Ns" expandable section, no reasoning DOM element appeared on any of the four turns sent. With Plus / Pro and the "Thinking" picker, the literature reports a collapsible "Thought" block; that path could not be exercised here.</p>
+</section>
+
+<section>
+<h2>5. Final assistant message</h2>
+
+<details open>
+<summary>DOM shape <span class="summary-tldr">— the full container template.</span></summary>
+<div class="details-body">
+
+<pre><code>&lt;div data-message-author-role="assistant"
+     data-message-id="…"
+     data-turn-start-message="true"
+     data-message-model-slug="gpt-5-5"
+     class="min-h-8 text-message relative flex w-full flex-col items-end gap-2 …"&gt;
+  &lt;div class="flex w-full flex-col gap-1 empty:hidden"&gt;
+    &lt;div class="streaming-animation markdown prose dark:prose-invert wrap-break-word w-full dark markdown-new-styling"&gt;
+      &lt;!-- streamed markdown: &lt;p&gt;, &lt;ul&gt;, &lt;li&gt;, &lt;code&gt;,
+           &lt;span webpage-citation-pill&gt;, &lt;span entity-underline&gt;… --&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+
+<ul>
+  <li><code>streaming-animation</code> is the only outward streaming indicator.</li>
+  <li>Markdown sub-elements carry source-offset attributes (<code>data-start</code>, <code>data-end</code>, <code>data-section-id</code>) — these align rendered DOM to the underlying token stream, presumably to let post-stream features (copy, hover-cards) map back to ranges.</li>
+  <li>Math is rendered as KaTeX-like spans with both ASCII <em>and</em> LaTeX source co-rendered as adjacent text — a quirk of how the markdown extractor serialises the DOM.</li>
+</ul>
+
+</div>
+</details>
+</section>
+
+<section>
+<h2>6. Animations &amp; microinteractions</h2>
+
+<table>
+  <tr><th>Element</th><th>Animation</th><th>Duration / tick</th></tr>
+  <tr><td><code>.streaming-animation</code></td><td>Blinking-caret keyframe (CSS, while patches stream)</td><td>continuous</td></tr>
+  <tr><td><code>[data-testid="webpage-citation-pill"]</code></td><td><code>animate-[show_150ms_ease-in]</code> fade-in</td><td>150 ms</td></tr>
+  <tr><td><code>.transition-colors</code> on pills/links</td><td><code>duration-150 ease-in-out</code></td><td>150 ms</td></tr>
+  <tr><td><code>.hover:entity-accent</code></td><td>Colour swap on entity-underline</td><td>hover</td></tr>
+  <tr><td><code>:focus-visible</code> on assistant container</td><td><code>keyboard-focused:focus-ring</code></td><td>static</td></tr>
+</table>
+
+<p>No spinner / throbber / skeleton was observed. The entire pre-stream interval (placeholder lifetime) is too short for one to be useful (&lt;300&nbsp;ms).</p>
+</section>
+
+<section>
+<h2>7. Multi-turn behaviour</h2>
+
+<ul>
+  <li>Conversation persists at URL <code>/c/&lt;conversation-id&gt;</code>. Auto-titled after the first user message — sidebar updated to "Node.js LTS Version" within seconds of turn 1.</li>
+  <li>Sidebar history fetched via <code>GET /backend-api/conversations?offset=0&amp;limit=28&amp;order=updated&amp;is_archived=false&amp;is_starred=false</code> (re-fetched per turn).</li>
+  <li><strong>DOM virtualisation:</strong> after 4 turns, only the last 3 user/assistant pairs were attached to the DOM at a time. Older messages were unmounted (turn 1 was no longer queryable via <code>[data-message-id]</code>). The transcript is a windowed view backed by the SSE-rebuilt store; scroll position determines what's mounted.</li>
+  <li><strong>Stream resume:</strong> the <code>resume_conversation_token</code> JWT (5 min TTL) lets a refreshed tab pick up an in-flight stream — <code>GET /backend-api/conversation/&lt;id&gt;/stream_status</code> is the polling endpoint after reload.</li>
+  <li><strong>Per-turn telemetry:</strong> <code>POST /backend-api/sentinel/{prepare,finalize,ping,req,heartbeat}</code> runs the anti-bot guard; <code>POST /backend-api/bazaar/event</code> and <code>bazaar/signal-event</code> fire ad/event telemetry alongside the conversation stream.</li>
+</ul>
+</section>
+
+<section>
+<h2>8. Notable design decisions</h2>
+
+<ol>
+  <li><strong>Tool calls are completely invisible.</strong> ChatGPT chooses to hide every <code>tool</code>-role message and to <em>not</em> render an "explainer card." The only artefact is the inline citation pill. Contrast with Claude / Perplexity, which surface a "Searched: ..." block during streaming.</li>
+  <li><strong>JSON-Patch deltas over plain text deltas.</strong> Reduces wire entropy and supports status / metadata mutations alongside text. The client only needs one patch loop, not multiple decoders.</li>
+  <li><strong>Hidden scaffold message before each assistant message.</strong> Carries content references, citations, entities, ads — separately from the streamed text. Lets the renderer drop in citation pills, entity underlines, and ad units without changing the assistant text node mid-stream.</li>
+  <li><strong>Placeholder element with hard-coded <code>WEB:</code> prefix</strong> even for non-web turns. Suggests the same code path renders both, with the actual tool decision happening later.</li>
+  <li><strong>DOM virtualisation of older messages.</strong> Cuts memory for long conversations but means stitching together history requires reading the SSE or the <code>/textdocs</code> endpoint, not the DOM.</li>
+  <li><strong>Ad slots inline in the SSE stream.</strong> <code>ads</code> and <code>single_advertiser_ad_unit</code> are delivered in the same channel as the assistant content, not as a separate request.</li>
+</ol>
+</section>
+
+<section>
+<h2>Artifacts</h2>
+
+<ul>
+  <li><a href="../../chatgpt/FINDINGS.md">FINDINGS.md</a> — full raw notes from the capture.</li>
+  <li><a href="screens/40-final-conversation.png">Final conversation full-page screenshot</a> (PNG).</li>
+  <li>Per-turn frames: <a href="screens/03-typed.png">turn 1 typed</a>, <a href="screens/04-immediately-after-send.png">turn 1 sent</a>, <a href="screens/11-t2-400ms.png">turn 2 @ 400ms</a>, <a href="screens/22-t3-450ms.png">turn 3 @ 450ms</a>, <a href="screens/23-t3-2450ms.png">turn 3 final</a>, <a href="screens/34-t4-final.png">turn 4 (math) final</a>.</li>
+  <li>SSE bodies on disk: <code>sse-turn4-math.txt</code> (17 KB), <code>sse-turn3.txt</code> (50 KB).</li>
+</ul>
+</section>
+
+<p class="foot"><a href="../index.html">← Back to executive summary</a></p>
+
+</div>
+</body>
+</html>
