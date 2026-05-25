@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resumable streams — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="resumable-streams" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; Resumable streams</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Branch · Resumable streams</p>
+        <h1>Resumable streams</h1>
+        <p class="lede">If the user's tab dies mid-response, the answer keeps streaming where it left off when they come back. The client side is the AI SDK's built-in <code>resumeStream()</code>; the server side is ours to implement, but we model the interface so a mock can stand in until then. Full implementation reference at <span class="path">/Users/adambossy/code/agent_ui/notes/resumable-streams.md</span>.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>Refreshing the tab during a streaming answer continues the answer instead of restarting it.</li>
+          <li>A client developer can verify the resume flow against a local mock without spinning up Redis.</li>
+          <li>The protocol marker (<code>x-vercel-ai-ui-message-stream: v1</code>) is set on the resume GET so the AI SDK parses it correctly.</li>
+        </ol>
+      </section>
+
+      <section id="client-side">
+        <header class="section-header">
+          <h2>Client side: <code>useChat</code>'s <code>resumeStream</code></h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="client-side"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>The AI SDK's React hook exposes <code>resumeStream()</code> as a first-class action. The hook does the GET to the resume endpoint, parses the same SSE v1 events, and merges them into the same message state as a fresh stream — no duplicate code path on our side.</p>
+
+<pre><code>// src/chat/useAutoResume.ts
+export function useAutoResume(chat: UseChatReturn, initialMessages: UIMessage[]) {
+  useEffect(() =&gt; {
+    // If the last persisted message is from the user, an assistant turn was
+    // in flight when we last left this session.
+    const tail = initialMessages.at(-1);
+    if (tail?.role === "user") chat.resumeStream();
+  }, []);
+}</code></pre>
+
+        <p>One effect per <code>ChatScreen</code> mount. The heuristic is identical to the Vercel template's — last persisted message <code>role === "user"</code> means the assistant's response wasn't saved yet. No extra server call to figure it out.</p>
+      </section>
+
+      <section id="backend-interface">
+        <header class="section-header">
+          <h2>Backend interface (our port)</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="backend-interface"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>We port the shape of the <code>resumable-stream</code> npm package into our own library — language-agnostic, so the same conceptual API works whether the backend is Python or Node:</p>
+
+<pre><code>// Conceptual surface — same names in TS and Python.
+interface StreamCache {
+  // Server starts a new resumable stream.
+  // Returns a tee-target the producer writes SSE bytes into; the cache
+  // mirrors them to a backing store (Redis / SQLite-FTS / etc.).
+  createNewResumableStream(streamId: string, source: () =&gt; AsyncIterable&lt;Uint8Array&gt;): Promise&lt;void&gt;;
+
+  // Server replays the cached stream + tails any new bytes until end.
+  resumableStream(streamId: string, makeEmpty: () =&gt; AsyncIterable&lt;Uint8Array&gt;): AsyncIterable&lt;Uint8Array&gt;;
+}
+
+// Per-session index:
+interface StreamIndex {
+  rememberLatest(sessionId: string, streamId: string): Promise&lt;void&gt;;
+  getLatest(sessionId: string): Promise&lt;string | null&gt;;
+}</code></pre>
+
+        <p>Two pieces. <code>StreamCache</code> is the bytes; <code>StreamIndex</code> is the lookup ("given a session, what's the most recent streamId?"). Both have multiple backends (in-memory for tests, Redis for prod, SQLite for self-hosted dev). The HTTP layer composes them: POST creates a fresh streamId, persists it via <code>StreamIndex</code>, and tees through <code>StreamCache</code>. GET resolves the streamId and reads back.</p>
+
+        <p>Full reference (Vercel's original, our notes, Python port sketch): <a href="../../notes/resumable-streams.md">resumable-streams.md</a>.</p>
+      </section>
+
+      <section id="mocking">
+        <header class="section-header">
+          <h2>Mocking</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="mocking"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>The frontend's mock backend implements both POST and GET, and uses an in-memory <code>Map&lt;streamId, Uint8Array[]&gt;</code> for the cache. The POST path tees its own canned SSE script (a scripted turn we can reuse for tests) into the cache. The GET path reads it back.</p>
+
+        <p>For exercise: a "Refresh button" in dev mode that closes the SSE socket mid-stream lets the developer verify resume by clicking once — no actual tab refresh needed. The mock is in-memory only, so refreshing the tab still loses the cache (matching the real-world failure mode when Redis is empty / TTL'd).</p>
+      </section>
+
+      <section id="auto-resume">
+        <header class="section-header">
+          <h2>Auto-resume policy</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="auto-resume"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Condition</th><th>Behaviour</th></tr>
+          <tr><td>Opening a fresh session</td><td>Don't resume; assistant message is fresh.</td></tr>
+          <tr><td>Opening an existing session, last message <code>role === "assistant"</code></td><td>Don't resume; the turn finished cleanly.</td></tr>
+          <tr><td>Opening an existing session, last message <code>role === "user"</code></td><td>Call <code>resumeStream()</code>. The GET will replay any cached bytes; if the cache is empty (TTL elapsed), the server returns an empty SSE that ends immediately and the UI shows the user message with no response — same state as if nothing was in flight.</td></tr>
+          <tr><td>Tapping into a subagent that's still streaming under its parent</td><td>Same as above. The subagent has its own <code>streamId</code>; the resume endpoint replays the cached bytes for that id. If the subagent finished but its parent is still going, the resume returns the final state immediately.</td></tr>
+        </table>
+      </section>
+
+      <p class="foot">See also <a href="../../notes/resumable-streams.md">Full implementation reference (notes/)</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

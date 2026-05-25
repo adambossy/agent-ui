@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File uploads — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="file-uploads" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; File uploads</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Branch · File uploads</p>
+        <h1>File uploads</h1>
+        <p class="lede">Drag-drop a file, watch it upload, see it as an attachment chip on the next message. The frontend is the focus; the backend just has to satisfy a 4-method interface. A mock implementation simulates a slow upload locally so the entire flow is exercisable without a real bucket.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>A user can drag a file onto the composer (or click an attach button) and see upload progress in-line.</li>
+          <li>An upload can be canceled before it finishes; a failed upload can be retried without losing the file.</li>
+          <li>Once uploaded, the file appears as a chip on the composer; sending the message attaches it as a <code>file</code> part on the outgoing <code>UIMessage</code>.</li>
+        </ol>
+      </section>
+
+      <section id="ux-flow">
+        <header class="section-header">
+          <h2>UX flow</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="ux-flow"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <ol>
+          <li>User drags a file (or hits the paperclip icon and picks one).</li>
+          <li>A chip appears on the composer in "uploading" state with a thin progress bar.</li>
+          <li>On success, the chip shows a thumbnail (images), a file icon (everything else), the filename, and the size. An × button removes it.</li>
+          <li>On error, the chip turns red with a "Retry" button.</li>
+          <li>When the user submits the message, every "ready" chip is attached as a <code>{ type: "file", url, filename, mediaType }</code> part on the <code>UIMessage</code>. "Uploading" chips block the send button.</li>
+        </ol>
+
+        <p>One chip per file. AI Elements' <code>Attachments</code> component renders the post-send view inside the message bubble.</p>
+      </section>
+
+      <section id="interface">
+        <header class="section-header">
+          <h2>The interface (what we need from the backend)</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="interface"><span class="section-check-label">Read</span></label>
+        </header>
+
+<pre><code>// src/uploads/types.ts
+export interface UploadAdapter {
+  /** Upload a single file. Returns when the file is durably stored. */
+  upload(
+    file: File,
+    opts: {
+      signal: AbortSignal;
+      onProgress?: (loaded: number, total: number) =&gt; void;
+    }
+  ): Promise&lt;UploadResult&gt;;
+
+  /** Optional: pre-signed URL flow. If supported, the client uses this path
+   *  to skip server bandwidth. */
+  getPresignedPut?(args: { filename: string; mediaType: string; size: number })
+    : Promise&lt;{ uploadUrl: string; finalUrl: string }&gt;;
+}
+
+export type UploadResult = {
+  url: string;          // stable, server-relative or absolute
+  filename: string;
+  mediaType: string;
+  size: number;
+};</code></pre>
+
+        <p>The backend's <code>POST /api/uploads</code> implements <code>upload()</code>. Whatever it does internally — S3 multipart, R2 single PUT, local disk — is opaque to us. If the backend supports presigned PUT URLs, the adapter implements <code>getPresignedPut</code> and the client switches to direct-to-bucket on its own (no extra wiring).</p>
+      </section>
+
+      <section id="mocking">
+        <header class="section-header">
+          <h2>Mocking</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="mocking"><span class="section-check-label">Read</span></label>
+        </header>
+
+<pre><code>// src/uploads/mock.ts
+export class MockUploadAdapter implements UploadAdapter {
+  async upload(file, { signal, onProgress }) {
+    // Simulate 2 seconds of progress in 100ms ticks.
+    const ticks = 20;
+    for (let i = 1; i &lt;= ticks; i++) {
+      if (signal.aborted) throw new DOMException("aborted", "AbortError");
+      await new Promise(r =&gt; setTimeout(r, 100));
+      onProgress?.(file.size * i / ticks, file.size);
+    }
+    // Optionally simulate a 10% failure rate for development:
+    if (Math.random() &lt; 0.1) throw new Error("mock upload failed");
+
+    // Echo the file back as a blob URL so the chat can preview it locally.
+    const url = URL.createObjectURL(file);
+    return { url, filename: file.name, mediaType: file.type, size: file.size };
+  }
+}</code></pre>
+
+        <p>The mock exercises every state the real adapter would — progress, success, abort, retry — so the UI is fully wired before a backend exists. Switching to the real adapter is one factory call.</p>
+      </section>
+
+      <section id="client-state">
+        <header class="section-header">
+          <h2>Client state for in-flight uploads</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="client-state"><span class="section-check-label">Read</span></label>
+        </header>
+
+<pre><code>// src/uploads/store.ts
+type UploadEntry = {
+  tempId: string;            // client-side stable id
+  file: File;
+  status: "uploading" | "ready" | "error" | "canceled";
+  progress: number;          // 0..1
+  result?: UploadResult;
+  error?: string;
+  controller: AbortController;
+};
+
+export const useUploadStore = create&lt;{
+  entries: Record&lt;string, UploadEntry&gt;;
+  enqueue(file: File): string;
+  cancel(tempId: string): void;
+  retry(tempId: string): void;
+  remove(tempId: string): void;
+  attachReadyTo(message: ComposerDraft): ComposerDraft;
+}&gt;(/* ... */);</code></pre>
+
+        <p>The composer subscribes to "ready" entries and renders chips. On submit, <code>attachReadyTo</code> turns those into <code>file</code> parts on the outgoing <code>UIMessage</code> and clears them from the store.</p>
+      </section>
+
+      <p class="foot">See also <a href="../architecture/backend-contract.html">Backend contract</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

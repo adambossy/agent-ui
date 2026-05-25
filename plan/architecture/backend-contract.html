@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backend contract — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="backend-contract" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; <a href="index.html">Architecture</a> &nbsp;/&nbsp; Backend contract</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Leaf · Architecture</p>
+        <h1>Backend contract</h1>
+        <p class="lede">What the HTTP layer in front of <code>agent_harness</code> must expose for our client to do its job. Defines endpoints, request/response shapes, and the touchpoints to <code>agent_harness</code> Protocols. Backend implementation itself is out of scope — this is the seam.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>A frontend developer can wire the client to a real backend or a mock without code changes — same endpoint shapes either way.</li>
+          <li>Anyone reading this can tell, in five minutes, what the backend has to deliver before the client is useful.</li>
+        </ol>
+      </section>
+
+      <section id="endpoints">
+        <header class="section-header">
+          <h2>Endpoints</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="endpoints"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Method · path</th><th>Request</th><th>Response</th><th>Notes</th></tr>
+          <tr><td><code>POST /api/chat</code></td><td><code>{ sessionId, message: UIMessage, modelId? }</code></td><td><code>text/event-stream</code><br/>header <code>x-vercel-ai-ui-message-stream: v1</code></td><td>Starts a new turn. Issues SSE events per <a href="../protocol/index.html">protocol</a>.</td></tr>
+          <tr><td><code>GET /api/chat/:sessionId/stream</code></td><td>—</td><td><code>text/event-stream</code></td><td>Replay / resume the latest in-flight stream for the session. Empty stream + <code>[DONE]</code> if none active.</td></tr>
+          <tr><td><code>GET /api/sessions/:sessionId</code></td><td>—</td><td><code>{ session, messages: UIMessage[] }</code></td><td>Hydrate the chat surface when the user opens an existing session.</td></tr>
+          <tr><td><code>GET /api/sessions/tree</code></td><td>—</td><td><code>SessionTreeNode</code></td><td>Full tree of sessions and their parent/child relations. Used by the sidebar (<a href="../session-tree/index.html">session tree</a>).</td></tr>
+          <tr><td><code>POST /api/uploads</code></td><td>multipart/form-data</td><td><code>{ url, filename, mediaType, size }</code></td><td>Returns a stable URL the client can attach to the next message. See <a href="../file-uploads/index.html">file uploads</a>.</td></tr>
+          <tr><td><code>POST /api/sessions</code></td><td><code>{ parentSessionId?, parentMessageId?, initialPrompt? }</code></td><td><code>{ sessionId }</code></td><td>Create a new session, optionally as a child of an existing one (used for tap-into of subagents).</td></tr>
+        </table>
+
+        <p>Auth is out of scope here — see below. The five-endpoint surface is the entire contract.</p>
+      </section>
+
+      <section id="session-store">
+        <header class="section-header">
+          <h2>Session store expectations</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="session-store"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>The harness's <code>Session</code> Protocol already stores messages and run-state snapshots per session id. For our purposes we additionally need:</p>
+
+        <ul>
+          <li><strong>Parent linkage.</strong> Each session has an optional <code>parentSessionId</code> and <code>parentMessageId</code> (the message in the parent that invoked this subagent). The harness's <code>SubagentStart</code> event already carries the child agent name; we need the child <em>session id</em> persisted alongside.</li>
+          <li><strong>Tree query.</strong> Some way to walk from a root session to all descendants. The client doesn't care if it's a recursive CTE, a materialised path, or a graph — just that <code>GET /api/sessions/tree</code> returns the shape it expects.</li>
+          <li><strong>Message persistence in the AI SDK shape.</strong> The harness stores its own <code>Message</code> objects; the backend HTTP layer is responsible for converting them to <code>UIMessage</code> (with <code>parts: UIMessagePart[]</code>) on read. See <a href="../protocol/harness-mapping" onclick="event.preventDefault();document.querySelector('a[href=\'../protocol/index.html\']').click();">protocol mapping</a>.</li>
+        </ul>
+      </section>
+
+      <section id="auth">
+        <header class="section-header">
+          <h2>Auth</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="auth"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>Whatever the backend's choice is, the client just needs the same auth-bearing identity on every request — cookie, bearer token, or header set by a proxy. The AI SDK's <code>DefaultChatTransport</code> sends <code>credentials: 'include'</code> by default for cookies; or we configure the transport with a <code>fetch</code> wrapper that adds an <code>Authorization</code> header. No further auth ceremony is part of the protocol; the SSE events do not carry user identity.</p>
+      </section>
+
+      <section id="interface-summary">
+        <header class="section-header">
+          <h2>Interface summary (for the mock)</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="interface-summary"><span class="section-check-label">Read</span></label>
+        </header>
+
+<pre><code>// Shared TS type — used by both real backend bindings and the mock.
+interface BackendBindings {
+  chat(req: ChatRequest, opts: { signal: AbortSignal }): ReadableStream&lt;Uint8Array&gt;;
+  resumeStream(sessionId: string): ReadableStream&lt;Uint8Array&gt;;
+  getSession(sessionId: string): Promise&lt;{ session: SessionMeta; messages: UIMessage[] }&gt;;
+  getSessionTree(rootId?: string): Promise&lt;SessionTreeNode&gt;;
+  upload(file: File): Promise&lt;{ url: string; filename: string; mediaType: string; size: number }&gt;;
+  createSession(req: CreateSessionRequest): Promise&lt;{ sessionId: string }&gt;;
+}</code></pre>
+
+        <p>Every page in this plan that says "the backend does X" really means: <strong>this interface plus a sensible default mock</strong>. The mocks are described per-feature in their respective branches.</p>
+      </section>
+
+      <p class="foot">Back to <a href="index.html">Architecture</a> · See also <a href="../protocol/index.html">Protocol</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

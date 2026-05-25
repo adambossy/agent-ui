@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phasing — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="phasing" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; Phasing</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Branch · Phasing</p>
+        <h1>Phasing: MVP → iterations</h1>
+        <p class="lede">Ship a minimum-viable chat surface against the mock backend in week 1, then add subagent inline expansion, then resume, then file uploads, then the session tree. Each phase ends with a runnable app.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>Each phase produces a runnable, useful app on its own — no phase requires the next to be valuable.</li>
+          <li>The frontend can be developed end-to-end without a real backend by relying on mocks defined in earlier branches.</li>
+          <li>Every phase ships responsive — verified on a 375px-wide viewport before that phase is called done.</li>
+        </ol>
+      </section>
+
+      <section id="mvp">
+        <header class="section-header">
+          <h2>MVP (Phase 1)</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="mvp"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>The smallest thing that talks to the AI SDK protocol and shows reasoning + tool calls + assistant text.</p>
+
+        <ul>
+          <li>Vite + React + Tailwind + shadcn + AI Elements installed (<code>Conversation</code>, <code>Message</code>, <code>Reasoning</code>, <code>Tool</code>, <code>PromptInput</code>).</li>
+          <li>One route: <code>/c/:sessionId?</code>. <code>useChat</code> wired to <code>DefaultChatTransport</code>.</li>
+          <li>Mock backend: a single canned turn covering reasoning, one tool call (with custom <code>WeatherRenderer</code>), and assistant text. Scripted SSE replay.</li>
+          <li>Two-track render skeleton (stable list + streaming overlay), even though MVP only has one turn.</li>
+          <li>No subagents, no uploads, no resume, no session tree, no auth.</li>
+        </ul>
+
+        <p>Exit criteria: open the app, see the canned turn stream in, reload, see it persist — <em>and</em> the same flow works on a 375px-wide viewport (phone breakpoint) with no layout breakage. Approximate effort: 3–5 days.</p>
+      </section>
+
+      <section id="phase-2">
+        <header class="section-header">
+          <h2>Phase 2: subagents</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="phase-2"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <ul>
+          <li>Add <code>data-subagent-event</code> handling — <code>onData</code> hook splits child events into a Zustand <code>SubagentStore</code>.</li>
+          <li>Implement <code>SubagentTool</code> + <code>SubagentTranscript</code> (one level deep; deeper nests render as tap-into headers only).</li>
+          <li>Add <code>openSession(sessionId)</code> primitive + the <code>/c/:sessionId</code> hydration path (calls <code>getSession()</code>).</li>
+          <li>Mock backend: extend the canned turn to fire 2 parallel subagents, each with its own reasoning + tool calls.</li>
+          <li>Visual: agent-color tinting, status badges, "Open ↗" tap-into.</li>
+        </ul>
+
+        <p>Exit criteria: drive the canned subagent turn, expand both inline, tap into one, navigate back, expand a different one. Approximate effort: 5–7 days.</p>
+      </section>
+
+      <section id="phase-3">
+        <header class="section-header">
+          <h2>Phase 3: resume + uploads</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="phase-3"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <ul>
+          <li>Wire <code>resumeStream()</code> through <code>useAutoResume</code>. Mock backend simulates a disconnect mid-stream.</li>
+          <li>Implement <code>UploadAdapter</code> interface + <code>MockUploadAdapter</code> + composer chip UI + <code>file</code>-part attachment on send.</li>
+          <li>"Refresh in the middle" dev affordance to verify resume by click rather than browser refresh.</li>
+        </ul>
+
+        <p>Exit criteria: start a canned turn, click "kill stream" in dev mode, refresh, see the response continue. Drag a file in, send it, see it as a chip in the resulting user message. Approximate effort: 4–5 days.</p>
+      </section>
+
+      <section id="later">
+        <header class="section-header">
+          <h2>Later phases</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="later"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <ul>
+          <li><strong>Phase 4 — Session tree.</strong> Sidebar tree view, <code>GET /api/sessions/tree</code> wiring, live updates as new sessions appear.</li>
+          <li><strong>Phase 5 — Real backend.</strong> Swap the mock for the real <code>agent_harness</code> HTTP layer. Most of this is server-side; on the client it's an env var flip.</li>
+          <li><strong>Phase 6 — Tool approvals.</strong> Wire <code>addToolApprovalResponse</code>. Surface approval prompts inside <code>SubagentTool</code> headers and inside ordinary tool cards.</li>
+          <li><strong>Phase 7 — Generative UI polish.</strong> Build out the rest of the per-tool renderers (search results, diffs, tables). Theme system extensions.</li>
+          <li><strong>Phase 8 — Production concerns.</strong> Auth, telemetry, error reporting, SSR for the marketing surface, accessibility audit.</li>
+        </ul>
+
+        <p>Phases 4 onward are negotiable in order; each can stand alone once Phase 3 is done.</p>
+      </section>
+
+      <p class="foot">See <a href="../assumptions/index.html">Assumptions &amp; open questions</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

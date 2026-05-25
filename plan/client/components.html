@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component inventory — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="client-components" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; <a href="index.html">Client</a> &nbsp;/&nbsp; Component inventory</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Leaf · Client</p>
+        <h1>Component inventory</h1>
+        <p class="lede">Which AI Elements components we use, which we drop, and where we add our own. AI Elements is shadcn-style: each <code>npx ai-elements add &lt;name&gt;</code> drops a <code>.tsx</code> into our repo that we own and can edit.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>A frontend developer can swap or restyle any chat component without touching application logic.</li>
+          <li>The dependency graph stays auditable — every AI Elements file lives in <code>src/components/ai-elements/</code> and is regular React code.</li>
+        </ol>
+      </section>
+
+      <section id="keep">
+        <header class="section-header">
+          <h2>Keep (install from AI Elements registry)</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="keep"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Component</th><th>Role</th></tr>
+          <tr><td><code>Conversation</code> + sub-parts</td><td>Stick-to-bottom container; "jump to bottom" FAB; markdown export.</td></tr>
+          <tr><td><code>Message</code> + <code>MessageContent</code> + <code>MessageResponse</code></td><td>User vs assistant bubble; streaming markdown via Streamdown.</td></tr>
+          <tr><td><code>MessageActions</code></td><td>Per-turn icon row (copy, regenerate, etc.).</td></tr>
+          <tr><td><code>Reasoning</code> + <code>ReasoningTrigger</code> + <code>ReasoningContent</code></td><td>Auto-open-on-stream / auto-close 1s after end / "Thought for Ns".</td></tr>
+          <tr><td><code>Tool</code> + <code>ToolHeader</code> + <code>ToolInput</code> + <code>ToolOutput</code></td><td>Default tool card — collapsible, status badge, JSON args + output.</td></tr>
+          <tr><td><code>PromptInput</code></td><td>Composer with attachments + model selector + submit/stop.</td></tr>
+          <tr><td><code>Attachments</code></td><td>Inline preview of <code>FileUIPart</code>s.</td></tr>
+          <tr><td><code>Sources</code></td><td>"Used N sources" collapsible footer (if a turn includes <code>source-*</code> parts).</td></tr>
+          <tr><td><code>InlineCitation</code></td><td>Inline numbered references — useful for tools that cite.</td></tr>
+          <tr><td><code>CodeBlock</code></td><td>Shiki + copy + theme. Used by <code>ToolInput</code>/<code>ToolOutput</code> and inside <code>MessageResponse</code>.</td></tr>
+          <tr><td><code>Suggestion</code> / <code>Suggestions</code></td><td>Follow-up prompt chips on the empty state.</td></tr>
+        </table>
+      </section>
+
+      <section id="drop">
+        <header class="section-header">
+          <h2>Drop</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="drop"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <ul>
+          <li><code>Artifact</code> + the entire side-panel system. The chat surface is a single column. Generative tool renderers (see <a href="../generative-ui/index.html">generative UI</a>) can still produce rich content inline.</li>
+          <li><code>Canvas</code> / <code>Node</code> / <code>Edge</code> and the rest of the workflow set. Out of scope.</li>
+          <li><code>Persona</code>, <code>SpeechInput</code>, <code>AudioPlayer</code>, <code>Transcription</code>, <code>VoiceSelector</code>, <code>MicSelector</code>. No voice in MVP.</li>
+          <li><code>Sandbox</code>, <code>WebPreview</code>, <code>JsxPreview</code>. Only relevant if we add code execution as a tool; we'll bring them back per-tool when we do.</li>
+          <li><code>OpenInChat</code>. Aimed at deep-linking to ChatGPT et al.; not useful here.</li>
+        </ul>
+      </section>
+
+      <section id="custom">
+        <header class="section-header">
+          <h2>Add (custom components, owned by us)</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="custom"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Component</th><th>Role</th></tr>
+          <tr><td><code>SubagentTool</code></td><td>Replaces the default <code>Tool</code> when the tool call is a subagent invocation. Shows agent name + status; expandable to <code>SubagentTranscript</code>; "Open as session" tap-into. See <a href="../subagents/inline-expansion.html">subagent inline expansion</a>.</td></tr>
+          <tr><td><code>SubagentTranscript</code></td><td>One-level-deep mini transcript for an inline subagent expansion. Same renderers as the top-level transcript (Message, Reasoning, Tool) but driven by a child message store.</td></tr>
+          <tr><td><code>SessionSidebar</code></td><td>Left rail: recent sessions list + session-tree drawer trigger.</td></tr>
+          <tr><td><code>SessionTreeDrawer</code></td><td>Modal/drawer that renders the full session tree (pi-style); click a node → <code>openSession()</code>.</td></tr>
+          <tr><td><code>ToolRendererRegistry</code></td><td>Maps <code>toolName</code> → custom renderer (see <a href="../generative-ui/index.html">generative UI</a>). Falls back to the default <code>Tool</code>.</td></tr>
+          <tr><td><code>UploadDropzone</code></td><td>Drag-drop + file picker wired to the upload interface. Shows progress + retry.</td></tr>
+        </table>
+      </section>
+
+      <section id="theming">
+        <header class="section-header">
+          <h2>Theming</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="theming"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <p>Tailwind v4 in CSS Variables mode. We inherit the shadcn token set (<code>--background</code>, <code>--foreground</code>, <code>--muted-foreground</code>, <code>--accent</code>, <code>--ring</code>, ...) and define one extra family for subagent chrome (<code>--subagent-border</code>, <code>--subagent-tint</code>). Dark mode flips via the standard <code>.dark</code> class on <code>&lt;html&gt;</code>; auto-detect via <code>prefers-color-scheme</code> with a user override stored in <code>localStorage</code>.</p>
+      </section>
+
+      <p class="foot">Back to <a href="index.html">Client</a> · See also <a href="state.html">State &amp; rendering</a>, <a href="../generative-ui/index.html">Generative UI</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

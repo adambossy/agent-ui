@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assumptions &amp; open questions — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="assumptions" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; Assumptions &amp; open questions</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Branch · Assumptions</p>
+        <h1>Assumptions &amp; open questions</h1>
+        <p class="lede">Every default this plan picked, every thing the user steered, and every question that's still outstanding. Read this before disagreeing with anything in the rest of the tree — your objection may already be on file as a non-default.</p>
+      </header>
+
+      <section id="what-i-asked-you">
+        <header class="section-header">
+          <h2>What I asked you</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="what-i-asked-you"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Question</th><th>Your answer</th><th>Impact</th></tr>
+          <tr><td>Backend language?</td><td>Python (FastAPI), but largely out of scope. The backend is <code>agent_harness</code>.</td><td>The plan describes only the HTTP-layer seam; resumable-streams port is sketched in both TS and Python; everything else assumes a Python service.</td></tr>
+          <tr><td>How do subagents stream?</td><td>"Align with whatever agent_harness supports." Backend out of scope.</td><td>Subagents inline events on the parent's stream tagged with <code>{ sessionId, parentToolCallId }</code> — matching <code>republish_event_for_parent</code> in <code>agent_harness/core/subagents.py</code>. Drives the entire <a href="../protocol/subagent-extension.html">subagent extension</a> page.</td></tr>
+          <tr><td>Persistence backend?</td><td>Out of scope.</td><td>The plan defines an interface (<code>GET /api/sessions/:id</code>, <code>GET /api/sessions/tree</code>) but does not prescribe a store. <code>agent_harness</code> already ships <code>InMemorySession</code>, <code>SqliteSession</code>, <code>RedisSession</code>.</td></tr>
+          <tr><td>File-upload destination?</td><td>Out of scope. Define the interface; mock for frontend dev.</td><td><a href="../file-uploads/index.html">File uploads</a> defines the <code>UploadAdapter</code> interface + <code>MockUploadAdapter</code>; backend bucket choice deferred.</td></tr>
+        </table>
+      </section>
+
+      <section id="what-i-assumed">
+        <header class="section-header">
+          <h2>What I assumed without asking</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="what-i-assumed"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Assumption</th><th>Alternative</th><th>Why this default</th><th>Affects</th></tr>
+          <tr><td>Vite + React 19 + TypeScript (no Next.js)</td><td>Next.js App Router, Remix, plain Vite + Solid</td><td>The Vercel chatbot template's Next-locked pieces (RSC, middleware, server actions) are all things we're explicitly dropping. Vite is the lightest path that keeps AI Elements working.</td><td><a href="../client/index.html">client skeleton</a></td></tr>
+          <tr><td>AI SDK v1 protocol on the wire (<code>x-vercel-ai-ui-message-stream: v1</code>)</td><td>Custom protocol; ChatKit-style thread events</td><td>Reuses <code>@ai-sdk/react</code>, <code>DefaultChatTransport</code>, AI Elements without us re-implementing them. The translation layer on the backend is small (~30 LOC per event family).</td><td><a href="../protocol/index.html">protocol</a></td></tr>
+          <tr><td>Zustand for cross-cutting state</td><td>Redux Toolkit, Jotai, plain React context, Tanstack Query</td><td>Smallest API surface; works well with selector-based subscriptions for the <code>SubagentStore</code> hot path. Tanstack Query is a fine fit for the GET endpoints if we want a thicker cache later.</td><td><a href="../client/state.html">state</a></td></tr>
+          <tr><td>One level deep of inline subagent expansion; deeper requires tap-into</td><td>Recursive inline rendering all the way down</td><td>Bounds the DOM, keeps the visual depth legible, matches the opencode pattern that already exists in the wild. Recursive rendering is a feature gap across the entire industry — building it is novel UX work that doesn't belong in a v1.</td><td><a href="../subagents/inline-expansion.html">inline expansion</a></td></tr>
+          <tr><td><code>react-router</code> v7 with URL = source of truth</td><td>Tanstack Router; client-only state for "current session"</td><td>Browser back/forward semantics; deep linking; cheap. Tanstack Router is a viable swap if we want loaders / actions semantics later.</td><td><a href="../client/index.html">client skeleton</a></td></tr>
+          <tr><td>Tools opt into subagent rendering via a <code>markAsSubagent(name)</code> registry call</td><td>Server tells the client; subagent metadata as a tool field</td><td>Keeps the client decoupled from the harness's notion of subagent. The harness can change its definition; we just register one fact in the renderer registry.</td><td><a href="../generative-ui/index.html">generative UI</a></td></tr>
+          <tr><td>Mock backend ships in the same repo, behind <code>VITE_BACKEND=mock</code></td><td>Separate mock package; MSW for network-level mocking</td><td>Lowest friction for solo frontend dev. MSW is a good upgrade path when the mock complexity outgrows a hand-written one.</td><td><a href="../architecture/backend-contract.html">backend contract</a>, <a href="../resumable-streams/index.html">resume</a>, <a href="../file-uploads/index.html">uploads</a></td></tr>
+          <tr><td>SSR / static export not in scope</td><td>SSR with Next; SSG; static export of read-only sessions</td><td>The chat surface is fundamentally interactive; SSR buys little. A read-only static export of sessions is interesting (pi has one) but a separate concern.</td><td><a href="../client/index.html">client skeleton</a></td></tr>
+          <tr><td>Tailwind responsive utility classes for the responsive layout (mobile-first, with <code>sm:</code> / <code>md:</code> / <code>lg:</code> breakpoints)</td><td>A dedicated mobile bundle / route; CSS-Grid container queries</td><td>One layout, branch at the breakpoint. Container queries are appealing for nested subagent expansions but aren't well-supported enough by older mobile Safari to make load-bearing in MVP.</td><td><a href="../client/index.html">client skeleton</a>, <a href="../client/components.html">component inventory</a></td></tr>
+        </table>
+      </section>
+
+      <section id="open-questions">
+        <header class="section-header">
+          <h2>Resolved (read from <code>~/code/agent_harness</code>) + remaining open questions</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="open-questions"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <h3>Resolved</h3>
+        <ol>
+          <li><strong>SubagentStart does not carry a child <code>session_id</code> today.</strong> <code>SubagentStart(parent_agent_name, child_agent_name, tool_call_id)</code> (<code>events.py:224</code>). However, the child <code>Agent</code> <em>does</em> have its own <code>Session</code> instance with its own <code>session_id</code> — see <code>Agent.as_tool</code> (<code>agent.py:249</code>) which calls <code>agent.run(prompt, …, event_bus=child_bus)</code>. The HTTP-layer adapter is responsible for threading the child <code>session_id</code> into the wire event when it republishes; the plan documents this requirement on <a href="../protocol/subagent-extension.html">subagent extension</a> and treats it as the smallest backend ask.</li>
+          <li><strong>The <code>Session</code> Protocol does not track parent/child linkage.</strong> Surface is just <code>session_id</code>, <code>get_messages</code>, <code>add_messages</code>, <code>clear</code>, plus run-state methods (<code>memory.py</code>). Implication: the HTTP layer maintains its own <code>(child_session_id → parent_session_id, parent_tool_call_id)</code> index. The session-tree endpoint reads from there.</li>
+          <li><strong>Subagents share the parent's stream; they are not independently resumable today.</strong> <code>RepublishingBus</code> forwards every child event onto the parent's bus (<code>subagents.py:272</code>). One SSE stream per top-level run. The plan adapts: tap-into of an in-flight subagent attaches to the <em>parent's</em> resume stream and filters by <code>tool_call_id</code> (see <a href="../subagents/tap-into.html">tap-into</a>); tap-into of a completed subagent rehydrates from the child's persisted <code>Session</code> via <code>GET /api/sessions/:childId</code>.</li>
+          <li><strong>Auth.</strong> Punted. The client will work without an auth layer in local dev; whoever stands up the production HTTP layer chooses (cookie or bearer) and the client transport is configured accordingly.</li>
+          <li><strong>Nested-subagent approval UX.</strong> Approval prompts always surface in the <em>parent's composer</em>, not inside the subagent's header or transcript. Rationale: the parent's composer is the user's stable focus point; bouncing approvals between nested expansions makes them easy to miss.</li>
+          <li><strong>Per-session feature flags.</strong> No. The protocol does not carry them; the harness does not model them; we don't speculate.</li>
+          <li><strong>Responsive design defaults.</strong> Accepted as drafted — sidebar collapses to a drawer below <code>md</code>, composer sticky-bottom with safe-area insets, 44 × 44 px touch targets, inline subagent expansion shrinks to ~12 px indent on phone with the existing "tap-into only" fallback documented as an active escape hatch (verified in Phase 2).</li>
+        </ol>
+
+        <h3>Remaining open</h3>
+        <ol>
+          <li><strong>The exact HTTP-layer adapter for translating <code>SubagentStart</code> + republished child events into <code>data-subagent-event</code> with <code>session_id</code> attached.</strong> The harness has the information (the child's <code>RunContext</code> has the Session); the adapter needs ~20 LOC to thread it through. Out of scope for the frontend plan but flagged here so the backend implementer doesn't miss it.</li>
+          <li><strong>How long does the backend hold a child session's stream-attached state after the parent finishes?</strong> For "tap into a still-streaming subagent while parent is also still streaming," the child's events ride the parent stream. After the parent finishes, the child's already done. So this is mainly relevant if the parent's stream-cache TTL is shorter than the user's typical "open it later" window — informs Redis TTL choices in <a href="../resumable-streams/index.html">resumable streams</a>.</li>
+          <li><strong>Mobile testing target devices.</strong> The plan commits to a 375 px viewport (iPhone SE / mini). Whether to add automated mobile-Safari testing (BrowserStack / Playwright mobile emulation) is a Phase 8 call.</li>
+        </ol>
+      </section>
+
+      <p class="foot">Back to <a href="../index.html">executive summary</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent web UI — Plan</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="root" data-page-depth="0">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <header class="page-header">
+        <p class="eyebrow">Plan · 2026-05-25</p>
+        <h1>Agent web UI on the AI SDK protocol, against agent_harness</h1>
+        <p class="lede">A Vite + React app that mimics the Vercel chatbot template's chat surface, drops the artifact side-panel, keeps generative tool rendering and file uploads, and adds two things the template lacks: subagents-as-tool-calls with one-level inline expansion + tap-into, and a navigable session tree. The backend is <code>agent_harness</code>; this plan defines only what the client expects from it.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>A user can send a message, see reasoning and tool calls stream in, and read the answer with the same polish as ChatGPT or the Vercel chatbot demo.</li>
+          <li>When the agent delegates to a subagent, the user sees the subagent's full activity inline (one level deep) and can open the subagent as its own first-class session.</li>
+          <li>The user can navigate the full tree of sessions in a sidebar and open any of them.</li>
+          <li>If the user refreshes the tab mid-stream, the answer keeps streaming where it left off.</li>
+          <li>The same client works against the real backend and against a mock used in development, with no code changes.</li>
+          <li>The same app is fully usable on a phone, a tablet, and a laptop/desktop — every screen, every action, every state — without a separate mobile build or a feature-stripped variant.</li>
+        </ol>
+      </section>
+
+      <section id="the-goal">
+        <header class="section-header">
+          <h2>The goal</h2>
+          <label class="section-check-wrap" title="Mark section as read">
+            <input type="checkbox" class="section-check" data-section-id="the-goal">
+            <span class="section-check-label">Read</span>
+          </label>
+        </header>
+        <p>Build a web UI for <code>agent_harness</code> that feels like the Vercel chatbot template, minus the artifact side-panel, plus the subagent and session-tree affordances of <code>sst/opencode</code> and <code>pi</code>. Reuse the Vercel AI SDK <em>client</em> (<code>@ai-sdk/react</code>'s <code>useChat</code> + AI Elements) but speak the protocol against a Python <code>agent_harness</code> backend. Define a thin, language-agnostic protocol so the same client can target a mock during development.</p>
+      </section>
+
+      <section id="scope">
+        <header class="section-header">
+          <h2>Scope</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="scope"><span class="section-check-label">Read</span></label>
+        </header>
+        <p><strong>In:</strong> the client app; the protocol contract; the client-side libraries we'll port from <code>resumable-stream</code>; the interfaces we expect the backend to satisfy; mocks for the backend pieces so the frontend can be developed end-to-end without a live <code>agent_harness</code> instance.</p>
+        <p><strong>Out:</strong> any backend implementation. <code>agent_harness</code> already has its own event taxonomy (<code>RunStart</code> / <code>MessageDelta</code> / <code>ToolCallStart</code> / <code>SubagentStart</code> / etc.) and its own session backends (<code>InMemory</code> / <code>Sqlite</code> / <code>Redis</code>). This plan describes the <em>seam</em> only — what the harness has to expose over HTTP for the client to do its job. Gaps in the harness today are listed as open questions, not as work items.</p>
+      </section>
+
+      <section id="strategy">
+        <header class="section-header">
+          <h2>Strategy</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="strategy"><span class="section-check-label">Read</span></label>
+        </header>
+        <ol>
+          <li><strong>Two protocols, one client.</strong> The wire format is the Vercel AI SDK UI Message Stream v1 — <code>text-*</code>, <code>reasoning-*</code>, <code>tool-input-*</code>, <code>tool-output-*</code>, <code>data-*</code>. The harness's native <code>Event</code> taxonomy is mapped to it on the way out of the HTTP layer (server-side, not by us).</li>
+          <li><strong>Subagents-as-tool-calls.</strong> The harness already exposes subagents via <code>build_agent_tool</code> + <code>republish_event_for_parent</code>; we mirror that on the wire as a regular <code>tool-&lt;subagent-name&gt;</code> part whose <code>output</code> carries the child session id, plus inline <code>data-subagent-event</code> records that the client renders into a nested mini-transcript.</li>
+          <li><strong>"Open new session" is one primitive.</strong> A single client-side function — <code>openSession(sessionId)</code> — drives both tap-into-a-subagent and session-tree navigation. The URL is the source of truth (<code>/c/&lt;sessionId&gt;</code>).</li>
+          <li><strong>Two-track rendering, pi-style.</strong> Stable list of completed messages + isolated streaming overlay. Avoids the entire-transcript-repaints-on-token problem.</li>
+          <li><strong>Mock first.</strong> Every backend boundary (file upload, resume, session tree fetch, chat POST) ships behind an interface with a mock impl. The MVP can be built end-to-end before <code>agent_harness</code> has its HTTP layer.</li>
+          <li><strong>Mobile is a first-class target.</strong> The chat surface, the composer, the sidebar tree, subagent expansions, file uploads, and the model picker all have to work on a 375px-wide viewport. Where the desktop affordance does not translate — most notably the left sidebar — the mobile layout substitutes a drawer or a sheet rather than dropping the feature.</li>
+        </ol>
+      </section>
+
+      <section id="tradeoffs">
+        <header class="section-header">
+          <h2>The tradeoffs we're making explicit</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="tradeoffs"><span class="section-check-label">Read</span></label>
+        </header>
+        <ul>
+          <li><strong>Inline subagent events vs separate streams.</strong> The harness republishes child events onto the parent's bus. We adopt that on the wire. Pro: one SSE connection per top-level session, the parent UI gets live subagent activity for free. Con: a subagent that's tapped-into is rebuilt from persistence, not resumed from a live socket. That's the deal opencode strikes too.</li>
+          <li><strong>No artifact side-panel.</strong> We drop the 60%-wide editor entirely. The space is reclaimed for inline subagent expansions. Generative UI replaces it — custom tool renderers can still produce rich panels inside the chat column.</li>
+          <li><strong>AI SDK v1 protocol, not a custom one.</strong> Buys us <code>useChat</code>, <code>DefaultChatTransport</code>, AI Elements components, the entire React ecosystem. Costs us a translation layer on the backend; <code>agent_harness</code> emits its own events and someone has to convert them to AI SDK shapes.</li>
+          <li><strong>One level deep, then navigate.</strong> Inline expansion of a subagent shows its full activity but does <em>not</em> recursively inline its own subagents. Going deeper is a tap-into. Matches the opencode pattern and keeps the DOM bounded.</li>
+        </ul>
+      </section>
+
+      <section id="tree">
+        <header class="section-header">
+          <h2>How to read this plan</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="tree"><span class="section-check-label">Read</span></label>
+        </header>
+        <p>The sidebar on the left lists every page. Each page is 1–2 minutes to read. The dot beside a node fills in as you check off sections — that's the only persistence in this plan, stored in <code>localStorage</code>. Start with <a href="architecture/index.html">Architecture</a> for the shape of the system, then <a href="protocol/index.html">Protocol</a> for the wire format, then dive into whatever branch is most relevant to your work.</p>
+      </section>
+
+      <p class="foot">Branches: <a href="architecture/index.html">Architecture</a> · <a href="protocol/index.html">Protocol</a> · <a href="client/index.html">Client</a> · <a href="subagents/index.html">Subagents</a> · <a href="session-tree/index.html">Session tree</a> · <a href="generative-ui/index.html">Generative UI</a> · <a href="file-uploads/index.html">File uploads</a> · <a href="resumable-streams/index.html">Resumable streams</a> · <a href="phasing/index.html">Phasing</a> · <a href="assumptions/index.html">Assumptions</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root",
+    "label": "Executive summary",
+    "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [
+          { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] }
+        ]
+      },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [
+          { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] }
+        ]
+      },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ]
+      },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ]
+      },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="smartplan.js"></script>
+</body>
+</html>

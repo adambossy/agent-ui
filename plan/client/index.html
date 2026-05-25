@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client — Agent web UI</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="agent-ui" data-page-id="client" data-page-depth="1">
+<div class="sp-layout">
+
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+
+  <div class="sp-main">
+    <div class="container">
+
+      <p class="crumbs"><a href="../index.html">Agent web UI</a> &nbsp;/&nbsp; Client</p>
+
+      <header class="page-header">
+        <p class="eyebrow">Branch · Client</p>
+        <h1>Client app skeleton</h1>
+        <p class="lede">Vite + React + AI Elements. No Next.js, no Server Components. The client is a pure SPA that talks to the backend over HTTP/SSE. Routing is client-side; the URL is the source of truth for which session is open.</p>
+      </header>
+
+      <section class="requirements">
+        <h2>Requirements</h2>
+        <ol>
+          <li>A new contributor can clone the repo, run one command, and have the app talking to a mock backend in under a minute.</li>
+          <li>Deep-linking to any session works on first load — no "session not found" flash.</li>
+          <li>Switching between sessions is instant if the session is already cached, with a clear loading state otherwise.</li>
+          <li>Every screen is laid out for phone, tablet, and laptop/desktop from day one; the sidebar collapses to a drawer below the <code>md</code> breakpoint, the composer stays anchored to the bottom on mobile, and nothing requires hover.</li>
+        </ol>
+      </section>
+
+      <section id="stack">
+        <header class="section-header">
+          <h2>Stack</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="stack"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <ul>
+          <li><strong>Build:</strong> Vite 7 + React 19 + TypeScript 5.7.</li>
+          <li><strong>UI:</strong> AI Elements (shadcn-style registry, copied into <code>src/components/ai-elements/</code>) + Tailwind v4 in CSS Variables mode + shadcn primitives.</li>
+          <li><strong>Chat hook:</strong> <code>@ai-sdk/react</code>'s <code>useChat</code> with <code>DefaultChatTransport</code>.</li>
+          <li><strong>Markdown:</strong> <code>streamdown</code> + plugins (<code>@streamdown/{code,math,mermaid,cjk}</code>).</li>
+          <li><strong>Routing:</strong> <code>react-router</code> (DOM v7). One route: <code>/c/:sessionId?</code>.</li>
+          <li><strong>State:</strong> <code>useChat</code> per active session + a Zustand store for cross-session things (open sessions list, session-tree cache). See <a href="state.html">state &amp; rendering</a>.</li>
+          <li><strong>No Next.js</strong>, <strong>no Vercel runtime</strong>, <strong>no Drizzle</strong>, <strong>no Auth.js</strong>. Auth is whatever the backend uses (cookie / bearer).</li>
+        </ul>
+      </section>
+
+      <section id="routing">
+        <header class="section-header">
+          <h2>Routing</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="routing"><span class="section-check-label">Read</span></label>
+        </header>
+
+        <table>
+          <tr><th>Path</th><th>Renders</th></tr>
+          <tr><td><code>/</code></td><td>Empty chat surface (new session pending first message)</td></tr>
+          <tr><td><code>/c/:sessionId</code></td><td>Chat surface bound to that session. Auto-resumes if a stream is in flight.</td></tr>
+          <tr><td><code>/c/:sessionId/tree</code> (modal)</td><td>Session-tree drawer overlay; URL state only — does not unmount the chat behind it.</td></tr>
+        </table>
+
+        <p>The chat surface is one component. The sidebar (recent sessions + tree) is another. Both stay mounted; only the session id changes. Switching sessions never unmounts the surface — it swaps the <code>useChat</code> binding.</p>
+
+        <p><strong>Responsive layout.</strong> Tailwind mobile-first. Below the <code>md</code> breakpoint (768px) the sidebar collapses to a slide-in drawer triggered by a hamburger in the chat header; the chat surface fills the viewport. From <code>md</code> up, the sidebar is fixed in the left rail. The session-tree drawer is the same component on all screens — it's already a modal/sheet by design, so there's nothing to swap. Composer stays bottom-anchored on every viewport; on mobile it uses <code>position: sticky</code> with safe-area insets so it sits above the keyboard. Touch targets are at least 44 × 44 px (Apple HIG) — that's a hard rule for every interactive element.</p>
+      </section>
+
+      <section id="transport-wiring">
+        <header class="section-header">
+          <h2>Transport wiring</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="transport-wiring"><span class="section-check-label">Read</span></label>
+        </header>
+
+<pre><code>// src/chat/transport.ts
+import { DefaultChatTransport } from "@ai-sdk/react";
+import { backend } from "@/backend";              // ← our interface, see below
+
+export function makeTransport(sessionId: string) {
+  return new DefaultChatTransport({
+    api: `/api/chat`,                              // POST endpoint
+    body: () => ({ sessionId }),                   // appended to every request
+    fetch: (input, init) => backend.fetch(input, init),  // pluggable
+    // Resume support — points at GET /api/chat/:sessionId/stream
+    resumeStreamApi: () => `/api/chat/${sessionId}/stream`,
+  });
+}</code></pre>
+
+        <p>The <code>backend</code> object is our own wrapper around <code>fetch</code> that respects whichever <code>BackendBindings</code> implementation is active (real or mock). In dev it can rewrite URLs to the mock; in prod it's a passthrough with the auth header attached.</p>
+      </section>
+
+      <section id="bootstrap">
+        <header class="section-header">
+          <h2>App bootstrap</h2>
+          <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="bootstrap"><span class="section-check-label">Read</span></label>
+        </header>
+
+<pre><code>// src/main.tsx
+import { createRoot } from "react-dom/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { App } from "./App";
+import { ChatScreen } from "./screens/ChatScreen";
+import { selectBackend } from "./backend";
+
+selectBackend(import.meta.env.VITE_BACKEND ?? "mock");   // "mock" | "real"
+
+createRoot(document.getElementById("root")!).render(
+  &lt;BrowserRouter&gt;
+    &lt;Routes&gt;
+      &lt;Route element={&lt;App /&gt;}&gt;
+        &lt;Route path="/" element={&lt;ChatScreen /&gt;} /&gt;
+        &lt;Route path="/c/:sessionId" element={&lt;ChatScreen /&gt;} /&gt;
+      &lt;/Route&gt;
+    &lt;/Routes&gt;
+  &lt;/BrowserRouter&gt;
+);</code></pre>
+
+        <p>Two routes, one screen. <code>VITE_BACKEND=mock</code> for solo frontend dev; <code>VITE_BACKEND=real</code> for end-to-end. The <code>App</code> shell holds the sidebar; <code>ChatScreen</code> is the chat surface itself.</p>
+      </section>
+
+      <p class="foot">Next: <a href="components.html">Component inventory</a> · <a href="state.html">State &amp; rendering</a></p>
+
+    </div>
+  </div>
+</div>
+
+<script id="smartplan-tree" type="application/json">
+{
+  "title": "Agent web UI",
+  "root": {
+    "id": "root", "label": "Executive summary", "href": "index.html",
+    "sections": ["the-goal", "scope", "strategy", "tradeoffs", "tree"],
+    "children": [
+      { "id": "architecture", "label": "Architecture", "href": "architecture/index.html", "sections": ["context", "data-flow", "the-three-stores", "deployment"],
+        "children": [ { "id": "backend-contract", "label": "Backend contract", "href": "architecture/backend-contract.html", "sections": ["endpoints", "session-store", "auth", "interface-summary"] } ] },
+      { "id": "protocol", "label": "Protocol", "href": "protocol/index.html", "sections": ["sse-envelope", "event-vocabulary", "harness-mapping", "data-channels"],
+        "children": [ { "id": "subagent-extension", "label": "Subagent extension", "href": "protocol/subagent-extension.html", "sections": ["the-republished-model", "data-shape", "events-on-the-wire", "ordering"] } ] },
+      { "id": "client", "label": "Client", "href": "client/index.html", "sections": ["stack", "routing", "transport-wiring", "bootstrap"],
+        "children": [
+          { "id": "client-components", "label": "Component inventory", "href": "client/components.html", "sections": ["keep", "drop", "custom", "theming"] },
+          { "id": "client-state", "label": "State & rendering", "href": "client/state.html", "sections": ["per-session-store", "two-track-render", "in-flight-overlay", "persistence"] }
+        ] },
+      { "id": "subagents", "label": "Subagents UX", "href": "subagents/index.html", "sections": ["model", "lifecycle", "header-row", "permissions"],
+        "children": [
+          { "id": "subagents-inline", "label": "Inline expansion", "href": "subagents/inline-expansion.html", "sections": ["the-expansion", "parallel-rendering", "what-shows-and-when"] },
+          { "id": "subagents-tap-into", "label": "Tap-into", "href": "subagents/tap-into.html", "sections": ["the-primitive", "url-and-history", "what-the-target-renders"] }
+        ] },
+      { "id": "session-tree", "label": "Session tree", "href": "session-tree/index.html", "sections": ["sidebar-tree", "fetching-the-tree", "open-new-session-primitive", "deep-linking"] },
+      { "id": "generative-ui", "label": "Generative UI", "href": "generative-ui/index.html", "sections": ["registry", "renderer-contract", "fallbacks", "examples"] },
+      { "id": "file-uploads", "label": "File uploads", "href": "file-uploads/index.html", "sections": ["ux-flow", "interface", "mocking", "client-state"] },
+      { "id": "resumable-streams", "label": "Resumable streams", "href": "resumable-streams/index.html", "sections": ["client-side", "backend-interface", "mocking", "auto-resume"] },
+      { "id": "phasing", "label": "Phasing", "href": "phasing/index.html", "sections": ["mvp", "phase-2", "phase-3", "later"] },
+      { "id": "assumptions", "label": "Assumptions & open questions", "href": "assumptions/index.html", "sections": ["what-i-asked-you", "what-i-assumed", "open-questions"] }
+    ]
+  }
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>
