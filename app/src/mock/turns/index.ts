@@ -4,6 +4,7 @@ import { runWeatherTurn } from "./weather";
 import { runParallelToolsTurn } from "./parallel-tools";
 import { runParallelStaggeredTurn } from "./parallel-staggered";
 import { runSubagentTurn } from "./subagent";
+import { runTodoListTurn } from "./todo-list";
 
 /**
  * Pick a canned turn based on the latest user message. Keyword matching is
@@ -23,6 +24,11 @@ export async function dispatchTurn(
   ctx: { sessionId: string; messages: unknown[] }
 ) {
   const text = lastUserText(ctx.messages).toLowerCase();
+
+  if (/\b(packing list|todo|to-?do|checklist|tokyo trip|pack for)\b/.test(text)) {
+    await runTodoListTurn(res, ctx);
+    return;
+  }
 
   if (/\b(dossier|stagger(ed)?|stock|investor|aapl|background check)\b/.test(text)) {
     await runParallelStaggeredTurn(res, ctx);

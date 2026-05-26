@@ -16,6 +16,12 @@
 import type { Plugin } from "vite";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { dispatchTurn } from "./turns";
+// Side-effect: populates the server-side live-component registry so
+// applyOpToDoc / op codecs work in this Node process. Same import chain
+// the client uses — every extension's index.ts side-effect-registers.
+import "../extensions";
+import { applyOpToDoc, broadcast, getDoc } from "./live/server-store";
+import { getLiveComponent } from "../live/registry";
 
 function setSseHeaders(res: ServerResponse) {
   res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
@@ -113,6 +119,57 @@ export function mockBackendPlugin(): Plugin {
           if (method === "POST" && url === "/api/uploads") {
             send(res, 501, { error: "uploads not implemented in MVP" });
             return;
+          }
+
+          // POST /api/live/:kind/:docId/op — user-originated live-component op
+          {
+            const m = /^\/api\/live\/([^/]+)\/([^/]+)\/op$/.exec(url);
+            if (method === "POST" && m) {
+              const kind = decodeURIComponent(m[1]);
+              const docId = decodeURIComponent(m[2]);
+              const body = (await readJson(req)) as {
+                opId?: string;
+                op?: unknown;
+                baseSeq?: number;
+                sessionId?: string;
+              };
+              const manifest = getLiveComponent(kind);
+              if (!manifest) {
+                send(res, 404, { error: `unknown kind ${kind}` });
+                return;
+              }
+              const doc = getDoc(docId);
+              if (!doc) {
+                send(res, 404, { error: `unknown doc ${docId}` });
+                return;
+              }
+              const opId = body.opId ?? randomId("op");
+              // OCC check
+              if (typeof body.baseSeq === "number" && body.baseSeq !== doc.serverSeq) {
+                const policy =
+                  (body.op && manifest.conflictPolicyFor?.(manifest.opCodec.parse(body.op))) ??
+                  "reject-on-conflict";
+                if (policy === "reject-on-conflict") {
+                  broadcast(doc, {
+                    kind: "op-rejected",
+                    docId,
+                    opId,
+                    reason: `stale baseSeq (${body.baseSeq} != ${doc.serverSeq})`,
+                  });
+                  send(res, 409, { reason: "stale baseSeq" });
+                  return;
+                }
+                // commute-by-id / commute-by-delta / lww → fall through
+              }
+              const result = applyOpToDoc(doc, body.op, "user", opId);
+              if ("error" in result) {
+                broadcast(doc, { kind: "op-rejected", docId, opId, reason: result.error });
+                send(res, 400, { reason: result.error });
+                return;
+              }
+              send(res, 200, { serverSeq: result.serverSeq });
+              return;
+            }
           }
 
           send(res, 404, { error: "not found" });
