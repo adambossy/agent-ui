@@ -3,6 +3,7 @@ import type { UIMessagePart } from "../types";
 import { DefaultTool } from "../components/tools/DefaultTool";
 import { WeatherRenderer } from "../components/tools/WeatherRenderer";
 import { SubagentTool } from "../components/tools/SubagentTool";
+import { LiveComponentHost, HiddenLiveOpTool, getLiveComponentByToolName } from "../live";
 
 export type ToolRendererProps = {
   part: Extract<UIMessagePart, { type: `tool-${string}` }>;
@@ -32,11 +33,14 @@ export function resolveToolRenderer(
   if (subagentNames.has(toolName)) {
     if (opts.insideSubagent) {
       // Recursion stop rule: nested subagents render as collapsed headers only.
-      // Wrap SubagentTool with allowExpand=false.
       return SubagentToolNonExpandable;
     }
     return SubagentTool;
   }
+  // Live-component routing: the extension's manifest declares which tools
+  // open the document (primary) and which are silent op emitters (op).
+  const live = getLiveComponentByToolName(toolName);
+  if (live) return live.role === "primary" ? LiveComponentHost : HiddenLiveOpTool;
   return renderers.get(toolName) ?? DefaultTool;
 }
 
