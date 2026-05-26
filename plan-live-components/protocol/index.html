@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protocol — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="protocol" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; Protocol &amp; dispatch</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Branch · Protocol</p>
+      <h1>Wire envelope &amp; dispatch path</h1>
+      <p class="lede">One new <code>data-live-op</code> channel on the existing AI SDK SSE stream. One new <code>POST /api/live/:kind/:docId/op</code> endpoint for user-originated ops. Same OCC discipline as a CRDT, simpler semantics for MVP.</p>
+    </header>
+
+    <section class="requirements">
+      <h2>Requirements</h2>
+      <ol>
+        <li>A backend implementer can write the live-op handler using only this page.</li>
+        <li>Conflicting writes (LLM and user mutating the same doc in the same window) are detected and surfaced, never silently merged into something neither party intended.</li>
+        <li>Two tabs of the same chat see ops in the same order and converge on identical state.</li>
+      </ol>
+    </section>
+
+    <section id="envelope">
+      <header class="section-header">
+        <h2>The wire envelope</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="envelope"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>One new <code>data-*</code> channel, comparable to <code>data-subagent-event</code>:</p>
+
+<pre><code>type LiveOpEvent =
+  | { kind: "doc-init";
+      docId: string; componentKind: string;
+      schemaVersion: number; payload: unknown }
+  | { kind: "op-applied";
+      docId: string; opId: string; op: unknown;
+      serverSeq: number; origin: "llm" | "user" }
+  | { kind: "op-rejected";
+      docId: string; opId: string; reason: string }
+  | { kind: "doc-snapshot";
+      docId: string; schemaVersion: number;
+      payload: unknown; serverSeq: number };
+
+// Sent as:
+//   data: {"type":"data-live-op","data":LiveOpEvent,"transient":false}</code></pre>
+
+      <ul>
+        <li><strong><code>doc-init</code></strong> — opens a doc on this stream. Sent once per (stream, docId).</li>
+        <li><strong><code>op-applied</code></strong> — confirmed op, in <code>serverSeq</code> order. <code>origin</code> tells the client whether to drop a matching <code>pendingOp</code> (user) or just apply (llm).</li>
+        <li><strong><code>op-rejected</code></strong> — rolls back the matching optimistic op. Carries a short reason.</li>
+        <li><strong><code>doc-snapshot</code></strong> — catch-up record after resume or sequence skip. Replaces local state wholesale.</li>
+      </ul>
+
+      <p>The marker header <code>x-vercel-ai-ui-message-stream: v1</code> and SSE plumbing are unchanged. Cross-link: <a href="../../notes/live-components-design.md">live-components-design.md</a> §4.</p>
+    </section>
+
+    <section id="llm-emit-path">
+      <header class="section-header">
+        <h2>LLM emit path</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="llm-emit-path"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <div class="mermaid">
+sequenceDiagram
+  participant L as LLM
+  participant T as Tool execute()
+  participant S as Server
+  participant C as Client
+  L->>T: call todo.addItem(text="...")
+  T-->>S: returns { ops: [{ kind: "add-item", ... }] }
+  S->>S: validate via opCodec; apply via reducer; persist
+  S-->>C: data-live-op { kind: "op-applied", origin: "llm", serverSeq: N+1 }
+  S-->>L: tool-output-available
+  C->>C: reducer.apply(op) → renderer rerenders
+      </div>
+
+      <p>The tool's <code>execute</code> returns <code>{ ops: Op[] }</code> — never new state. The server is the only writer to the doc. The tool's <code>tool-output-available</code> event still flows back to the LLM, but its content is whatever the server chooses (typically a confirmation like <code>{ docId, applied: N }</code>); the doc's <em>state</em> reaches the LLM via the persistence layer's "doc latest" query that the agent's system prompt reads, not via tool output.</p>
+    </section>
+
+    <section id="user-emit-path">
+      <header class="section-header">
+        <h2>User emit path</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="user-emit-path"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <div class="mermaid">
+sequenceDiagram
+  participant U as User
+  participant R as Renderer
+  participant ST as Doc store
+  participant N as LiveOpClient
+  participant S as Server
+  U->>R: click toggle
+  R->>ST: dispatch(op)
+  ST->>ST: optimistic apply + push to pendingOps
+  ST-->>R: rerender immediately
+  R->>N: send(op, baseSeq, opId)
+  N->>S: POST /api/live/todo-list/:docId/op
+  S->>S: validate; OCC on baseSeq; apply; persist
+  alt accepted
+    S-->>N: 200 { serverSeq: N+1 }
+    S-->>ST: data-live-op { kind: "op-applied", origin: "user", opId }
+    ST->>ST: drop pending entry; advance serverSeq
+  else rejected
+    S-->>N: 409 { reason }
+    S-->>ST: data-live-op { kind: "op-rejected", opId, reason }
+    ST->>ST: rollback to last confirmed state
+    ST-->>R: rerender with prior state + error
+  end
+      </div>
+
+      <p>POST body:</p>
+
+<pre><code>POST /api/live/:kind/:docId/op
+Content-Type: application/json
+
+{
+  "opId": "&lt;uuid&gt;",
+  "op": { "kind": "toggle-item", "id": "..." },
+  "baseSeq": 42,
+  "sessionId": "&lt;chat session id&gt;"
+}</code></pre>
+
+      <p>The 200 response is informational; the authoritative confirmation arrives via the SSE <code>op-applied</code> broadcast, which all subscribed tabs receive simultaneously.</p>
+    </section>
+
+    <section id="conflict">
+      <header class="section-header">
+        <h2>Conflict handling</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="conflict"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>Optimistic concurrency on <code>baseSeq</code>. If the LLM applied an op between the user reading state and POSTing, the server's stored <code>serverSeq</code> is higher than the user's <code>baseSeq</code>. The server then consults the manifest's per-op conflict policy:</p>
+
+      <table>
+        <tr><th>Policy</th><th>What the server does on stale baseSeq</th></tr>
+        <tr><td><code>commute-by-id</code></td><td>Apply the op anyway if it touches a different entity than the intervening ops did. E.g. toggling item A and toggling item B commute.</td></tr>
+        <tr><td><code>reject-on-conflict</code> (default)</td><td>Reject with <code>op-rejected</code>; client rolls back. Safe default — the renderer can surface a "list changed under you" hint.</td></tr>
+        <tr><td><code>lww</code></td><td>Apply unconditionally, last-write-wins. Useful for non-destructive ops like cursor position.</td></tr>
+      </table>
+
+      <p>Policy is declared per op variant by the extension in the manifest. Default is <code>reject-on-conflict</code>. CRDT-shaped — the wire envelope already carries <code>opId</code> + <code>baseSeq</code>, which is the substrate a real CRDT layer would need; swapping in Yjs later means replacing the server-side reducer without changing the envelope.</p>
+    </section>
+
+    <section id="multi-tab">
+      <header class="section-header">
+        <h2>Multi-tab consistency</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="multi-tab"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>Two tabs of the same chat session both subscribe to the same SSE stream. Each receives the same <code>op-applied</code> records in the same <code>serverSeq</code> order; both reduce identically. Pending optimistic ops are per-tab — Tab A's pending-toggle is invisible to Tab B until the server confirms and broadcasts. The single source of truth (server's persisted doc) keeps them convergent.</p>
+
+      <p>Resume: a refresh causes a new SSE subscribe. The server detects the gap (last-seen <code>serverSeq</code> &lt; current) and emits <code>doc-snapshot</code> to bring the tab up to date in one frame instead of replaying the op log. Cross-link: <a href="../../notes/resumable-streams.md">resumable-streams.md</a>.</p>
+    </section>
+
+    <p class="foot">Next: <a href="../registration/index.html">Registration</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

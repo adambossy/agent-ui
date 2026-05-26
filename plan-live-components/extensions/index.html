@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sample extensions — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="extensions" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; Sample extensions</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Branch · Sample extensions</p>
+      <h1>Two sample extensions</h1>
+      <p class="lede">Ship <strong>two</strong> extensions in the MVP — a richer one (<code>todo-list</code>) and a trivial one (<code>counter</code>). Two kinds in one chat forces the registry to dispatch by kind; the two together prove the manifest contract scales both ways.</p>
+    </header>
+
+    <section class="requirements">
+      <h2>Requirements</h2>
+      <ol>
+        <li>Both extensions can be active in the same chat session at the same time, each with its own doc, without any code in the chat core touching either kind.</li>
+        <li>The reader, after seeing both, can predict how a third extension (kanban, calendar) would be shaped without further documentation.</li>
+      </ol>
+    </section>
+
+    <section id="why-two">
+      <header class="section-header">
+        <h2>Why two and not one</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="why-two"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>A single sample extension proves the manifest contract works for one shape, but it can't prove the contract is <em>generic</em>. Two extensions force the chat core to demonstrate three properties:</p>
+
+      <ul>
+        <li>The registry resolves the right manifest by kind on every render.</li>
+        <li>Two doc stores don't bleed state into each other.</li>
+        <li>The wire envelope (<code>data-live-op</code>) correctly tags ops with kind so the reducer dispatch picks the right reducer.</li>
+      </ul>
+
+      <p>Picking one mutation-heavy extension and one trivial extension is deliberate: it reveals whether the contract is too verbose for simple cases (a counter shouldn't need a Zod schema with 10 lines of boilerplate) or too loose for complex ones (a todo list with edit-in-place needs more than just "increment").</p>
+    </section>
+
+    <section id="comparison">
+      <header class="section-header">
+        <h2>Side-by-side</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="comparison"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <table>
+        <tr><th></th><th><a href="todo-list.html">todo-list</a></th><th><a href="counter.html">counter</a></th></tr>
+        <tr><td>Payload</td><td><code>{ items: TodoItem[] }</code></td><td><code>{ value: number }</code></td></tr>
+        <tr><td>Op union size</td><td>4 (add, toggle, edit, remove)</td><td>2 (increment, set)</td></tr>
+        <tr><td>Tool count</td><td>4</td><td>2</td></tr>
+        <tr><td>User interactions</td><td>checkbox, inline edit, delete, add</td><td>+/- buttons, numeric input</td></tr>
+        <tr><td>Conflict policy</td><td><code>commute-by-id</code> per item; default <code>reject-on-conflict</code></td><td><code>lww</code> on set; <code>commute-by-delta</code> on increment</td></tr>
+        <tr><td>Lines of code (estimated)</td><td>~180</td><td>~50</td></tr>
+      </table>
+
+      <p>The two share zero kind-specific code; both depend only on the live-host package. Removing either leaves the other working.</p>
+    </section>
+
+    <p class="foot">Drill in: <a href="todo-list.html">todo-list</a> · <a href="counter.html">counter</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

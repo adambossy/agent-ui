@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assumptions — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="assumptions" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; Assumptions &amp; open questions</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Branch · Assumptions</p>
+      <h1>Assumptions &amp; open questions</h1>
+      <p class="lede">Three answered, several defaulted, a small set still genuinely open. Read this before disagreeing with anything in the rest of the tree.</p>
+    </header>
+
+    <section id="asked">
+      <header class="section-header">
+        <h2>What I asked you</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="asked"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <table>
+        <tr><th>Question</th><th>Your answer</th><th>Impact</th></tr>
+        <tr><td>How are extensions registered?</td><td><strong>Build-time imports + global registry</strong> (pi-web-ui pattern)</td><td>Drives the entire <a href="../registration/index.html">registration branch</a>. Type-safe end to end, tree-shakes, host import graph = registry.</td></tr>
+        <tr><td>How many sample extensions ship?</td><td><strong>Two</strong> — todo-list (rich) and counter (trivial)</td><td>Forces multi-kind dispatch in MVP. Both leaves of <a href="../extensions/index.html">sample extensions</a> branch.</td></tr>
+        <tr><td>Where do mock-backend docs live?</td><td><strong>In-memory</strong> — lost on dev-server restart</td><td>Matches existing mock-plugin pattern. <a href="../mock-backend/index.html">Mock backend</a> page details the implementation.</td></tr>
+      </table>
+    </section>
+
+    <section id="assumed">
+      <header class="section-header">
+        <h2>What I assumed without asking</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="assumed"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <table>
+        <tr><th>Assumption</th><th>Alternative</th><th>Why this default</th><th>Affects</th></tr>
+        <tr><td>Zod for op codecs</td><td>TypeBox, Valibot, hand-rolled</td><td>Already in our app's dep tree for AI SDK tool schemas. Familiar; good error messages; the codec interface is open so extensions can pick their own.</td><td><a href="../architecture/manifest.html">manifest</a></td></tr>
+        <tr><td>One global Zustand doc store keyed by <code>(kind, docId)</code></td><td>Per-extension stores; nanostores; Tanstack Query cache</td><td>Smallest API surface, matches existing <code>SubagentStore</code> pattern. Selector hooks shrink re-renders; extensions don't ship state infrastructure.</td><td><a href="../architecture/state-store.html">state store</a></td></tr>
+        <tr><td>Inline renderer placement (in the message)</td><td>Side-panel; modal; both</td><td>The doc is causally tied to the message that created it. Pi has an <code>isCustom</code> escape hatch — we adopt the same: extensions can render thumbnails inline and open a side region themselves, but the default is inline.</td><td><a href="../extensions/index.html">extensions</a></td></tr>
+        <tr><td>POST endpoint at <code>/api/live/:kind/:docId/op</code></td><td>Reuse the chat POST; send ops as message metadata</td><td>Cleaner separation. Live-doc ops aren't messages and shouldn't ride the chat-message protocol. The <code>data-live-op</code> SSE channel ferries broadcasts back; only the outbound (user) ops need a new endpoint.</td><td><a href="../protocol/index.html">protocol</a>, <a href="../mock-backend/index.html">mock backend</a></td></tr>
+        <tr><td>Single source of truth: server applies all ops, tools never mutate state directly</td><td>Client-authoritative LLM writes for low-latency feel</td><td>Eliminates dual-writer bugs. The cost is a round-trip per LLM op — surfaced as the main self-critique in <a href="../../notes/live-components-design.md">live-components-design.md</a>. Mitigation: batch related ops in a single tool call.</td><td>All architecture pages</td></tr>
+        <tr><td>Conflict default is <code>reject-on-conflict</code></td><td>LWW; commute-by-id</td><td>Safe failure mode — concurrent edits surface to the user instead of silently doing the wrong thing. Extensions opt into laxer policies per op when they're confident the op commutes.</td><td><a href="../cross-cutting/index.html">cross-cutting</a></td></tr>
+        <tr><td>Session-scoped docs (not account-scoped)</td><td>Account-scoped; public</td><td>Smallest auth surface. Account-scoped is a manifest field we reserved for forward compatibility; can land without redesigning anything.</td><td><a href="../cross-cutting/index.html">cross-cutting</a></td></tr>
+      </table>
+    </section>
+
+    <section id="open">
+      <header class="section-header">
+        <h2>Remaining open questions</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="open"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <ol>
+        <li><strong>How does the LLM "see" the current doc state in its next turn?</strong> The doc is server-persisted; the agent's prompt-builder needs to include the relevant doc(s) in context. Options: include the full payload as a system message; include a structured summary; let the LLM call a <code>todo.read</code> tool. Default for MVP: full payload as a system message scoped to recently-touched docs. Needs verification once the real backend lands.</li>
+        <li><strong>Pagination / size limits on payload.</strong> A pure-payload approach hits token-budget walls fast for big docs (a 200-item kanban). The forward seam is a manifest field <code>summarize?(state): string</code> that the agent's context-builder calls instead. Not in MVP.</li>
+        <li><strong>How does the tool know which docId to target?</strong> Three options: the LLM is told the docId via tool input schema (current sketch); the host injects it as a hidden tool arg; the server picks "the most recent doc of this kind." First option is most explicit; second is what most agent frameworks do; third is dangerous. Need to land on one before shipping more than the MVP demos.</li>
+        <li><strong>What happens when an extension throws inside its renderer?</strong> Currently undefined. Need an error boundary at the <code>LiveComponentHost</code> level so a broken renderer doesn't crash the whole chat. Easy fix in MVP.</li>
+        <li><strong>Is there a "discard this doc" affordance?</strong> The user might want to delete a doc the LLM created. Right now nothing in the design says how. A simple "×" on the renderer chrome (host-provided, not per-extension) plus a server-side <code>doc-tombstone</code> op variant solves it.</li>
+        <li><strong>Should the renderer have control over its own chrome?</strong> Pi has <code>isCustom: true</code> for full-bleed renderers; this design assumes a host wrapper by default. Should we lift the same flag onto the manifest (<code>renderer.bare?: true</code>)? Probably yes; small addition.</li>
+      </ol>
+    </section>
+
+    <p class="foot">Back to <a href="../index.html">executive summary</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

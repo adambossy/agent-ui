@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>State store — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="state-store" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; <a href="index.html">Architecture</a> &nbsp;/&nbsp; State store</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Leaf · Architecture</p>
+      <h1>The doc store</h1>
+      <p class="lede">One global Zustand store keyed by <code>(kind, docId)</code>. The chat core owns it; extensions never ship state infrastructure. Mirrors the pattern from the existing <code>subagentStore.ts</code>.</p>
+    </header>
+
+    <section class="requirements">
+      <h2>Requirements</h2>
+      <ol>
+        <li>Updating one doc never re-renders the renderer of another doc.</li>
+        <li>A renderer can subscribe to a slice of its doc (e.g. a single item's <code>done</code> state) and only re-render when that slice changes.</li>
+        <li>Pending optimistic ops are visible to the renderer but distinguishable from confirmed state.</li>
+      </ol>
+    </section>
+
+    <section id="shape">
+      <header class="section-header">
+        <h2>Shape</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="shape"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>type DocStatus = "hydrating" | "ready" | "desynced" | "error";
+
+type LiveDocEntry&lt;S, Op&gt; = {
+  kind: string;
+  docId: string;
+  schemaVersion: number;
+  payload: S;                      // the confirmed state from the server
+  pendingOps: Array&lt;{ opId: string; op: Op }&gt;;   // optimistic local
+  serverSeq: number;               // highest applied server sequence
+  status: DocStatus;
+  lastError?: string;
+};
+
+type LiveDocStoreState = {
+  docs: Record&lt;string, LiveDocEntry&lt;unknown, unknown&gt;&gt;;
+  apply(event: LiveOpEvent): void;
+  enqueue(kind: string, docId: string, opId: string, op: unknown): void;
+  rollback(docId: string, opId: string, reason: string): void;
+};</code></pre>
+
+      <p>Key format: <code>`${kind}::${docId}`</code>. The store doesn't know any specific schema; it stores <code>unknown</code> payloads and lets the manifest's reducer (looked up from the registry) decide how to apply ops.</p>
+    </section>
+
+    <section id="indexing">
+      <header class="section-header">
+        <h2>Why <code>(kind, docId)</code> and not just <code>docId</code></h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="indexing"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>DocIds are opaque server-issued UUIDs. The kind is needed because:</p>
+
+      <ul>
+        <li><strong>Renderer dispatch</strong> — the host renders <code>tool-${kind}</code> parts; the kind is what resolves the manifest, which carries the reducer.</li>
+        <li><strong>Validation</strong> — an op codec is per-kind; you can't validate an op without knowing which schema it targets.</li>
+        <li><strong>Authorisation</strong> — future ACL work likely scopes by kind ("this user can edit todo lists but not workflow definitions").</li>
+      </ul>
+
+      <p>Storing kind alongside the docId also means the store survives a missing manifest cleanly: the renderer can show "unknown component kind: <code>foo</code>" without needing the registry to know what foo is.</p>
+    </section>
+
+    <section id="selectors">
+      <header class="section-header">
+        <h2>Selector hooks</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="selectors"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>// Whole doc — for rendering the top-level structure
+const doc = useLiveDoc&lt;Todo&gt;(kind, docId);
+
+// Single slice — for narrow re-render boundaries
+const itemCount = useLiveDocSelector(
+  kind, docId,
+  (s: Todo) =&gt; s.items.length
+);
+
+// Doc metadata — pending status, server seq, errors
+const meta = useLiveDocMeta(kind, docId);</code></pre>
+
+      <p><code>useLiveDocSelector</code> uses Zustand's <code>useShallow</code> by default so passing the same value across renders doesn't trigger updates. The renderer receives the doc + dispatch + meta from the host (see <a href="../registration/plugin-author-guide.html#renderer">plugin author guide</a>); inside the renderer, extension authors can use these hooks directly to narrow further.</p>
+    </section>
+
+    <section id="pending-ops">
+      <header class="section-header">
+        <h2>Pending optimistic ops</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="pending-ops"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>When the user clicks "toggle," the renderer dispatches an op. <code>LiveOpClient</code>:</p>
+
+      <ol>
+        <li>Generates <code>opId = crypto.randomUUID()</code>.</li>
+        <li>Calls <code>store.enqueue(kind, docId, opId, op)</code>. The reducer is applied to <code>payload</code> immediately so the UI shows the change instantly. The op is pushed onto <code>pendingOps</code> so callers can render it differently if they want ("checked, but waiting to confirm").</li>
+        <li>POSTs to <code>/api/live/:kind/:docId/op</code> with <code>{ opId, op, baseSeq: serverSeq }</code>.</li>
+        <li>When the server's <code>op-applied</code> arrives via SSE with the same <code>opId</code>, the store removes it from <code>pendingOps</code> and advances <code>serverSeq</code>.</li>
+        <li>If <code>op-rejected</code> arrives instead, the store rolls back: re-applies all confirmed ops from the last good state, drops the pending entry, surfaces the reason via <code>lastError</code>.</li>
+      </ol>
+
+      <p>The reducer must be <strong>pure</strong> so the rollback replay produces identical state. This is the load-bearing reason the manifest's <code>reducer</code> signature accepts <code>(state, op)</code> with no <code>this</code>, no closures, no async.</p>
+
+      <p>Cross-link: outbound wire format and the OCC check on the server are at <a href="../protocol/index.html#user-emit-path">protocol · user emit path</a>.</p>
+    </section>
+
+    <p class="foot">Next: <a href="../protocol/index.html">Protocol</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

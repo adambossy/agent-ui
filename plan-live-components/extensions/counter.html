@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>counter — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="ext-counter" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; <a href="index.html">Sample extensions</a> &nbsp;/&nbsp; counter</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Leaf · Sample extension</p>
+      <h1><code>counter</code> — the trivial sample</h1>
+      <p class="lede">A single integer. Two ops. Two tools. Two buttons in the renderer. Exists to prove the manifest contract isn't over-engineered for simple cases and that two extensions can coexist in one chat.</p>
+    </header>
+
+    <section class="requirements">
+      <h2>Requirements</h2>
+      <ol>
+        <li>A whole counter extension fits in a single ~50-LOC file.</li>
+        <li>The user can run a todo-list and a counter in the same chat without either bleeding state into the other.</li>
+      </ol>
+    </section>
+
+    <section id="schema">
+      <header class="section-header">
+        <h2>Schema</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="schema"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>const Counter = z.object({
+  label: z.string().default(""),
+  value: z.number().int(),
+  min:   z.number().int().optional(),
+  max:   z.number().int().optional(),
+});
+type Counter = z.infer&lt;typeof Counter&gt;;</code></pre>
+    </section>
+
+    <section id="ops">
+      <header class="section-header">
+        <h2>Op union</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="ops"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <table>
+        <tr><th>Op</th><th>Payload</th><th>Conflict policy</th></tr>
+        <tr><td><code>increment</code></td><td><code>{ delta: number }</code></td><td><code>commute-by-delta</code> — concurrent increments sum correctly</td></tr>
+        <tr><td><code>set</code></td><td><code>{ value: number }</code></td><td><code>lww</code> — last write wins on a direct set</td></tr>
+      </table>
+
+      <p>The <code>commute-by-delta</code> policy is a one-liner in the manifest: when applying an <code>increment</code> with stale <code>baseSeq</code>, the server sums all intervening increments and applies anyway. This is the simplest possible CRDT-flavoured op — and it's why a counter is the right second sample: it exercises the conflict policy machinery without dragging in todo-list complexity.</p>
+    </section>
+
+    <section id="tools">
+      <header class="section-header">
+        <h2>LLM tools</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="tools"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>{
+  "counter.increment": z.object({ docId: string, delta: z.number().int() }),
+  "counter.set":       z.object({ docId: string, value: z.number().int() }),
+}</code></pre>
+
+      <p>No create-tool needed; the chat can also pre-seed counters with a system message that calls <code>counter.set({ value: 0 })</code> at session start.</p>
+    </section>
+
+    <section id="renderer">
+      <header class="section-header">
+        <h2>Renderer</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="renderer"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>export function CounterView({ doc, dispatch }: LiveRendererProps&lt;Counter, CounterOp&gt;) {
+  return (
+    &lt;div className="flex items-center gap-3 rounded-md border px-3 py-2"&gt;
+      {doc.label && &lt;span className="font-medium"&gt;{doc.label}&lt;/span&gt;}
+      &lt;button
+        aria-label="decrement"
+        onClick={() =&gt; dispatch({ kind: "increment", delta: -1 })}
+        disabled={doc.min !== undefined && doc.value &lt;= doc.min}
+      &gt;−&lt;/button&gt;
+      &lt;input
+        type="number"
+        value={doc.value}
+        onChange={(e) =&gt; dispatch({ kind: "set", value: Number(e.target.value) })}
+        className="w-16 text-center"
+      /&gt;
+      &lt;button
+        aria-label="increment"
+        onClick={() =&gt; dispatch({ kind: "increment", delta: 1 })}
+        disabled={doc.max !== undefined && doc.value &gt;= doc.max}
+      &gt;+&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}</code></pre>
+    </section>
+
+    <section id="demo">
+      <header class="section-header">
+        <h2>Demo flow</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="demo"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <ol>
+        <li>User: "Start a counter labelled 'pushups today' at 0."</li>
+        <li>LLM calls <code>counter.set({ value: 0 })</code>; renderer appears with two buttons and a numeric input.</li>
+        <li>User clicks <code>+</code> 12 times. Twelve <code>op-applied</code> records broadcast.</li>
+        <li>User: "How many?" LLM reads doc → "Twelve pushups today."</li>
+        <li>User clicks <code>+</code> at the same instant the LLM calls <code>counter.increment({ delta: 5 })</code>. Both apply because <code>commute-by-delta</code> commutes; final value advances by 6.</li>
+      </ol>
+
+      <p>This demo is one of two MVP demos. Together with the todo-list demo, they prove the registry dispatches by kind and the contract handles both rich and trivial extensions cleanly.</p>
+    </section>
+
+    <p class="foot">Back to <a href="index.html">extensions</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

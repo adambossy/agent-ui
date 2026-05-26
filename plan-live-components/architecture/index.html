@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="architecture" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; Architecture</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Branch · Architecture</p>
+      <h1>Architecture overview</h1>
+      <p class="lede">Five pieces. A registry of manifests, a global doc store, a generic host renderer, a wire envelope, and a single-endpoint server. Adding an extension touches the registry; the rest is wired once and never changes.</p>
+    </header>
+
+    <section class="requirements">
+      <h2>Requirements</h2>
+      <ol>
+        <li>A developer can sketch the data flow on a whiteboard from this page alone — no other reading required.</li>
+        <li>The architecture composes with the existing subagent extension and the existing chat-screen plumbing; nothing here invents a new transport.</li>
+      </ol>
+    </section>
+
+    <section id="context">
+      <header class="section-header">
+        <h2>The five pieces</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="context"><span class="section-check-label">Read</span></label>
+      </header>
+      <table>
+        <tr><th>Piece</th><th>What it is</th><th>Owner</th></tr>
+        <tr><td><code>LiveComponentRegistry</code></td><td>One map from <code>kind</code> to <code>LiveComponentManifest</code>. Populated by extension modules at import time.</td><td>Chat core, knows only the type — never a specific kind.</td></tr>
+        <tr><td><code>LiveComponentManifest&lt;S, Op&gt;</code></td><td>Schema + op codec + tool factories + renderer + reducer.</td><td>Extension author. See <a href="manifest.html">manifest</a>.</td></tr>
+        <tr><td><code>liveDocStore</code></td><td>One global Zustand store, keyed by <code>(kind, docId)</code>. Reduces ops via the manifest's reducer.</td><td>Chat core. See <a href="state-store.html">state store</a>.</td></tr>
+        <tr><td><code>LiveComponentHost</code></td><td>Generic React renderer registered for every <code>tool-${kind}</code>. Resolves the manifest, subscribes to the doc, provides <code>dispatch</code>.</td><td>Chat core.</td></tr>
+        <tr><td><code>LiveOpClient</code></td><td>POSTs user ops, applies them optimistically, reconciles with the server's broadcast.</td><td>Chat core.</td></tr>
+      </table>
+    </section>
+
+    <section id="data-flow">
+      <header class="section-header">
+        <h2>Data flow</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="data-flow"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <div class="mermaid">
+flowchart LR
+  llm[LLM] -->|tool call| server
+  user[User click in renderer] -->|POST /api/live/.../op| server
+  server[Agent server<br/>applies ops, persists] -->|data-live-op| sse[SSE stream]
+  sse --> reducer[liveDocStore reducer]
+  reducer --> render[Renderer rerenders]
+  user --> opt[Optimistic local apply] --> render
+  server -. on conflict .-> rollback[op-rejected] --> reducer
+      </div>
+
+      <p>One pipeline both writers go through. The LLM's <code>execute()</code> returns ops; the user's click POSTs ops. Server applies, persists, broadcasts. The same SSE stream carries the broadcast back. The next LLM turn sees the latest doc because the server is the only source of truth.</p>
+    </section>
+
+    <section id="components">
+      <header class="section-header">
+        <h2>Where each piece lives in the codebase</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="components"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>app/src/
+  live/                          ← new module, chat core
+    registry.ts                  LiveComponentRegistry (Map&lt;kind, Manifest&gt;)
+    store.ts                     liveDocStore (Zustand)
+    host.tsx                     LiveComponentHost (generic renderer)
+    client.ts                    LiveOpClient (optimistic dispatch)
+    types.ts                     Manifest, Op envelope, codec interfaces
+    index.ts                     registerLiveComponent + exports
+
+  extensions/
+    index.ts                     side-effect imports of every extension
+    todo-list/                   sample extension #1 (see extensions/todo-list)
+    counter/                     sample extension #2 (see extensions/counter)
+
+  mock/turns/                    extends with live-op events
+    live-doc.ts                  SSE script that creates a doc + streams ops
+  mock/vite-plugin.ts            adds POST /api/live/:kind/:docId/op handler
+
+  screens/ChatScreen.tsx         wires onData → liveDocStore.apply
+  components/Message.tsx         already routes tool-${kind} through registry</code></pre>
+
+      <p>Cross-references:</p>
+      <ul>
+        <li>Manifest shape and op codec → <a href="manifest.html">architecture/manifest</a></li>
+        <li>Store indexing, selectors, pending ops → <a href="state-store.html">architecture/state-store</a></li>
+        <li>Wire envelope, dispatch path, conflict, multi-tab → <a href="../protocol/index.html">protocol</a></li>
+        <li>How the host bootstraps + Pi precedent → <a href="../registration/index.html">registration</a></li>
+      </ul>
+    </section>
+
+    <p class="foot">Next: <a href="manifest.html">Manifest</a> · <a href="state-store.html">State store</a> · <a href="../protocol/index.html">Protocol</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>

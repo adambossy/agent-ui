@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mock backend — Live components</title>
+<link rel="stylesheet" href="../style.css">
+</head>
+<body data-plan-id="live-components" data-page-id="mock-backend" data-page-depth="1">
+<div class="sp-layout">
+  <aside class="sp-sidebar" id="smartplan-sidebar" aria-label="Plan navigation"></aside>
+  <div class="sp-main"><div class="container">
+
+    <p class="crumbs"><a href="../index.html">Live components</a> &nbsp;/&nbsp; Mock backend</p>
+
+    <header class="page-header">
+      <p class="eyebrow">Branch · Mock backend</p>
+      <h1>In-memory mock backend</h1>
+      <p class="lede">A <code>Map&lt;docId, { kind, schemaVersion, payload, serverSeq, subscribers }&gt;</code> in the Vite-plugin process. Handles <code>POST /api/live/:kind/:docId/op</code> for user ops, applies the matching manifest's <code>mockServerReducer</code>, broadcasts <code>op-applied</code> on every subscribed SSE stream. Doc state is lost on dev-server restart.</p>
+    </header>
+
+    <section class="requirements">
+      <h2>Requirements</h2>
+      <ol>
+        <li>A frontend developer can demonstrate live editing of a todo or counter end-to-end without a real backend.</li>
+        <li>The mock behaves identically to the real backend on the wire — same op-applied / op-rejected events, same OCC semantics.</li>
+        <li>Resetting state means restarting <code>vite</code>. No additional config or cleanup commands required.</li>
+      </ol>
+    </section>
+
+    <section id="data-model">
+      <header class="section-header">
+        <h2>In-memory data model</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="data-model"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>// app/src/mock/live/store.ts
+type LiveDocRecord = {
+  docId: string;
+  kind: string;
+  schemaVersion: number;
+  payload: unknown;
+  serverSeq: number;
+  subscribers: Set&lt;ServerResponse&gt;;   // SSE responses to broadcast to
+};
+
+const docs = new Map&lt;string, LiveDocRecord&gt;();</code></pre>
+
+      <p>The mock's <code>Map</code> sits in the Vite plugin's Node process. It survives Vite HMR (the plugin module is preserved) but not a full server restart. That's the intended ergonomic — restart = clean slate.</p>
+    </section>
+
+    <section id="post-endpoint">
+      <header class="section-header">
+        <h2>POST endpoint</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="post-endpoint"><span class="section-check-label">Read</span></label>
+      </header>
+
+<pre><code>// app/src/mock/vite-plugin.ts (additions)
+if (method === "POST" && /^\/api\/live\/[^/]+\/[^/]+\/op$/.test(url)) {
+  const [, , , kind, docId] = url.split("/");
+  const body = await readJson(req) as {
+    opId: string; op: unknown; baseSeq: number; sessionId: string;
+  };
+
+  const manifest = getLiveComponentForServer(kind);  // re-uses extension's mockServerReducer
+  if (!manifest) return send(res, 404, { error: "unknown kind" });
+
+  const doc = docs.get(docId);
+  if (!doc) return send(res, 404, { error: "unknown doc" });
+
+  if (body.baseSeq !== doc.serverSeq) {
+    const policy = manifest.conflictPolicyFor(body.op);
+    if (policy === "reject-on-conflict") {
+      broadcast(doc, { kind: "op-rejected", docId, opId: body.opId, reason: "stale baseSeq" });
+      return send(res, 409, { reason: "stale baseSeq" });
+    }
+    // otherwise fall through and let policy handle it
+  }
+
+  const op = manifest.opCodec.parse(body.op);   // throws → 400
+  doc.payload = manifest.mockServerReducer(doc.payload, op);
+  doc.serverSeq += 1;
+  broadcast(doc, { kind: "op-applied", docId, opId: body.opId, op, serverSeq: doc.serverSeq, origin: "user" });
+  return send(res, 200, { serverSeq: doc.serverSeq });
+}</code></pre>
+    </section>
+
+    <section id="broadcast">
+      <header class="section-header">
+        <h2>Broadcast over SSE</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="broadcast"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>Each chat session's POST <code>/api/chat</code> opens an SSE response that stays open for the turn. While open, the SSE writer subscribes the response to any docs the LLM touches:</p>
+
+<pre><code>function broadcast(doc: LiveDocRecord, event: LiveOpEvent) {
+  for (const res of doc.subscribers) {
+    res.write(`data: ${JSON.stringify({
+      type: "data-live-op", data: event, transient: false,
+    })}\n\n`);
+  }
+}</code></pre>
+
+      <p>After the chat turn ends (<code>[DONE]</code>), the SSE response closes; subscribers are pruned. A new turn opens a new SSE; if the same doc is referenced, it's re-subscribed. For "the user is mid-edit while a turn is not in flight" — same flow, the POST endpoint broadcasts to any still-open SSE that happens to be subscribed. In single-session use, that's the current chat's stream.</p>
+    </section>
+
+    <section id="llm-tool-path">
+      <header class="section-header">
+        <h2>LLM tool path</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="llm-tool-path"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <p>The mock plugin's existing scripted-turns infrastructure (<code>src/mock/turns/*.ts</code>) gains a helper:</p>
+
+<pre><code>// app/src/mock/turns/lib/live.ts
+export function applyLiveOp(
+  res: ServerResponse,
+  kind: string, docId: string, op: unknown
+): { serverSeq: number; payload: unknown } {
+  const doc = docs.get(docId) ?? createDoc(kind, docId);
+  doc.payload = getManifestForServer(kind).mockServerReducer(doc.payload, op);
+  doc.serverSeq += 1;
+  doc.subscribers.add(res);
+  ev(res, { type: "data-live-op", data: {
+    kind: "op-applied", docId, opId: crypto.randomUUID(),
+    op, serverSeq: doc.serverSeq, origin: "llm",
+  }, transient: false });
+  return { serverSeq: doc.serverSeq, payload: doc.payload };
+}</code></pre>
+
+      <p>A scripted "todo-list" turn calls <code>applyLiveOp</code> from inside the SSE streaming loop. The LLM-equivalent in the mock is just a hand-written script that uses the same broadcast helper the real POST endpoint uses — same wire output.</p>
+    </section>
+
+    <section id="restart-behavior">
+      <header class="section-header">
+        <h2>Restart behavior</h2>
+        <label class="section-check-wrap"><input type="checkbox" class="section-check" data-section-id="restart-behavior"><span class="section-check-label">Read</span></label>
+      </header>
+
+      <ul>
+        <li><strong>Vite HMR</strong> — the mock plugin module is preserved; the <code>docs</code> Map survives. Edits to <code>app/src/components/*</code> rebuild the client but the doc store keeps state.</li>
+        <li><strong>Full <code>npm run dev</code> restart</strong> — process exits; the <code>docs</code> Map is GC'd; next start is empty.</li>
+        <li><strong>Browser refresh</strong> — the client's <code>liveDocStore</code> resets, then it reconnects the SSE. The server emits <code>doc-snapshot</code> for any doc referenced in the rehydrated chat history.</li>
+      </ul>
+
+      <p>If a developer wants persistence, the upgrade path is documented but not implemented in MVP: drop in a <code>better-sqlite3</code> backend at <code>app/src/mock/live/sqlite-store.ts</code> with the same interface. The Vite plugin code paths don't change.</p>
+    </section>
+
+    <p class="foot">Next: <a href="../cross-cutting/index.html">Cross-cutting</a></p>
+
+  </div></div>
+</div>
+<script id="smartplan-tree" type="application/json">
+{"title":"Live components","root":{"id":"root","label":"Executive summary","href":"index.html","sections":["the-thing","decisions","fits-with","tree-guide","out-of-scope"],"children":[{"id":"architecture","label":"Architecture","href":"architecture/index.html","sections":["context","data-flow","components"],"children":[{"id":"manifest","label":"Manifest","href":"architecture/manifest.html","sections":["shape","op-codec","tools-vs-ops","schema-versioning"]},{"id":"state-store","label":"State store","href":"architecture/state-store.html","sections":["shape","indexing","selectors","pending-ops"]}]},{"id":"protocol","label":"Protocol & dispatch","href":"protocol/index.html","sections":["envelope","llm-emit-path","user-emit-path","conflict","multi-tab"]},{"id":"registration","label":"Registration","href":"registration/index.html","sections":["pi-precedent","peer-dep","side-effect-vs-explicit","where-it-lives"],"children":[{"id":"plugin-author-guide","label":"Plugin author guide","href":"registration/plugin-author-guide.html","sections":["file-layout","schema","ops","tools","renderer","register"]}]},{"id":"extensions","label":"Sample extensions","href":"extensions/index.html","sections":["why-two","comparison"],"children":[{"id":"ext-todo","label":"todo-list","href":"extensions/todo-list.html","sections":["schema","ops","tools","renderer","demo"]},{"id":"ext-counter","label":"counter","href":"extensions/counter.html","sections":["schema","ops","tools","renderer","demo"]}]},{"id":"mock-backend","label":"Mock backend","href":"mock-backend/index.html","sections":["data-model","post-endpoint","broadcast","llm-tool-path","restart-behavior"]},{"id":"cross-cutting","label":"Cross-cutting","href":"cross-cutting/index.html","sections":["conflict-policy","schema-versioning","auth-scope","non-goals"]},{"id":"phasing","label":"Phasing","href":"phasing/index.html","sections":["mvp","phase-2","phase-3","later"]},{"id":"assumptions","label":"Assumptions & open questions","href":"assumptions/index.html","sections":["asked","assumed","open"]}]}}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="../smartplan.js"></script>
+</body>
+</html>
