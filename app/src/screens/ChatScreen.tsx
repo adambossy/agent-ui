@@ -5,6 +5,8 @@ import { Message } from "../components/Message";
 import { Composer } from "../components/Composer";
 import { useSubagentStore, type SubagentEvent } from "../state/subagentStore";
 import { BACKEND_MODE, isUuid, makeTransport, newSessionId, primeRealBackend } from "../backend";
+import { useLiveDocStore } from "../live";
+import type { LiveOpEvent } from "../live";
 import type { UIMessage } from "../types";
 
 export function ChatScreen() {
@@ -34,6 +36,7 @@ export function ChatScreen() {
   }, []);
 
   const applySubagent = useSubagentStore((s) => s.apply);
+  const applyLiveOp = useLiveDocStore((s) => s.apply);
   const transport = useMemo(() => makeTransport(sessionId), [sessionId]);
 
   const { messages, sendMessage, status } = useChat({
@@ -46,6 +49,8 @@ export function ChatScreen() {
     onData: (part) => {
       if (part.type === "data-subagent-event") {
         applySubagent(part.data as SubagentEvent);
+      } else if (part.type === "data-live-op") {
+        applyLiveOp(part.data as LiveOpEvent);
       }
     },
   });
@@ -101,6 +106,7 @@ function EmptyState({
     { label: "Compare the weather in San Francisco, Tokyo, and London in parallel.", demo: "parallel · uniform" },
     { label: "Build me a quick AAPL dossier — stock, weather at HQ, recent earnings.", demo: "parallel · staggered" },
     { label: "Research the Roman aqueducts and have a writer draft an opening.", demo: "subagent" },
+    { label: "Make me a packing list for a 3-day Tokyo trip.", demo: "live · todo-list" },
   ];
   const realPrompts = [
     {
