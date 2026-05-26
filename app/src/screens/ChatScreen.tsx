@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useChat } from "@ai-sdk/react";
 import { Message } from "../components/Message";
 import { Composer } from "../components/Composer";
 import { useSubagentStore, type SubagentEvent } from "../state/subagentStore";
 import { BACKEND_MODE, isUuid, makeTransport, newSessionId, primeRealBackend } from "../backend";
-import { useLiveDocStore } from "../live";
+import { useLiveDocStore, useLiveUIStore, LiveDocsPanel } from "../live";
 import type { LiveOpEvent } from "../live";
 import type { UIMessage } from "../types";
 
@@ -55,41 +55,133 @@ export function ChatScreen() {
     },
   });
 
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  // Vertical scroll of the transcript.
+  const transcriptRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    const el = scrollerRef.current;
+    const el = transcriptRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
   }, [messages, status]);
 
   const isStreaming = status === "streaming" || status === "submitted";
   const showEmpty = messages.length === 0;
+  const activeDoc = useLiveUIStore((s) => s.activeDoc);
+
+  // Horizontal pane scroller (mobile: swipe between chat/doc; desktop: split).
+  const paneScrollerRef = useRef<HTMLDivElement | null>(null);
+  const [activePane, setActivePane] = useState<0 | 1>(0);
+  const prevActiveDoc = useRef(activeDoc);
+
+  const isMobile = () => typeof window !== "undefined" && window.innerWidth < 768;
+
+  const scrollToPane = useCallback((index: 0 | 1) => {
+    const el = paneScrollerRef.current;
+    if (!el || !isMobile()) return;
+    el.scrollTo({ left: index * el.clientWidth, behavior: "smooth" });
+  }, []);
+
+  // When a doc first opens on mobile, swipe over to it so the user sees it.
+  useEffect(() => {
+    if (!prevActiveDoc.current && activeDoc) {
+      // Defer so the doc pane has mounted (and has width) before scrolling.
+      requestAnimationFrame(() => scrollToPane(1));
+    }
+    if (prevActiveDoc.current && !activeDoc) {
+      setActivePane(0);
+    }
+    prevActiveDoc.current = activeDoc;
+  }, [activeDoc, scrollToPane]);
+
+  // Track which pane is in view (mobile) so the dots reflect reality.
+  function onPaneScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    if (el.clientWidth === 0) return;
+    const idx = Math.round(el.scrollLeft / el.clientWidth);
+    setActivePane(idx >= 1 ? 1 : 0);
+  }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div ref={scrollerRef} className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-3 sm:px-4 pt-4 pb-2">
-          {showEmpty ? (
-            <EmptyState
-              backend={BACKEND_MODE}
-              onPick={(prompt) => sendMessage({ text: prompt })}
-            />
-          ) : (
-            messages.map((m, i) => (
-              <Message
-                key={m.id ?? i}
-                message={m as unknown as UIMessage}
-                isStreaming={isStreaming && i === messages.length - 1}
-              />
-            ))
-          )}
+    <div className="relative flex h-full min-h-0 w-full flex-col">
+      <div
+        ref={paneScrollerRef}
+        onScroll={onPaneScroll}
+        className={
+          "flex h-full min-h-0 w-full " +
+          // Mobile: horizontal scroll-snap between panes. Desktop: static split.
+          "overflow-x-auto overflow-y-hidden snap-x snap-mandatory " +
+          "md:overflow-x-hidden md:snap-none scrollbar-none"
+        }
+      >
+        {/* Chat pane */}
+        <div
+          className={
+            "snap-start shrink-0 w-full flex flex-col h-full min-h-0 min-w-0 " +
+            "md:shrink md:w-auto md:flex-1 " +
+            (activeDoc ? "md:max-w-[50%]" : "")
+          }
+        >
+          <div ref={transcriptRef} className="flex-1 overflow-y-auto">
+            <div className="mx-auto max-w-3xl px-3 sm:px-4 pt-4 pb-2">
+              {showEmpty ? (
+                <EmptyState
+                  backend={BACKEND_MODE}
+                  onPick={(prompt) => sendMessage({ text: prompt })}
+                />
+              ) : (
+                messages.map((m, i) => (
+                  <Message
+                    key={m.id ?? i}
+                    message={m as unknown as UIMessage}
+                    isStreaming={isStreaming && i === messages.length - 1}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          <Composer disabled={isStreaming} onSend={(text) => sendMessage({ text })} />
         </div>
+
+        {/* Doc pane — present whenever a doc is active, both layouts */}
+        {activeDoc && (
+          <aside
+            aria-label="Live document panel"
+            className={
+              "snap-start shrink-0 w-full flex h-full min-h-0 min-w-0 bg-background " +
+              "md:shrink md:w-auto md:flex-1 md:border-l md:border-border"
+            }
+          >
+            <LiveDocsPanel />
+          </aside>
+        )}
       </div>
 
-      <Composer
-        disabled={isStreaming}
-        onSend={(text) => sendMessage({ text })}
-      />
+      {/* Mobile pane indicator + swipe affordance */}
+      {activeDoc && (
+        <div className="md:hidden absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-card/90 border border-border px-3 py-1.5 shadow-sm backdrop-blur">
+          <button
+            type="button"
+            aria-label="Show chat"
+            onClick={() => scrollToPane(0)}
+            className={
+              "w-2 h-2 rounded-full transition-colors " +
+              (activePane === 0 ? "bg-foreground" : "bg-muted-foreground/40")
+            }
+          />
+          <button
+            type="button"
+            aria-label="Show document"
+            onClick={() => scrollToPane(1)}
+            className={
+              "w-2 h-2 rounded-full transition-colors " +
+              (activePane === 1 ? "bg-foreground" : "bg-muted-foreground/40")
+            }
+          />
+          <span className="text-[11px] text-muted-foreground ml-1">
+            {activePane === 0 ? "swipe ← for list" : "swipe → for chat"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -77,6 +77,16 @@ body {
 }
 .pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
 
+/* Hide the horizontal scrollbar on the mobile pane-swiper while keeping
+ * scroll + snap behaviour. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Tighten the Tailwind `prose` defaults for chat-bubble content so paragraphs
  * don't carry the wide vertical rhythm a long article would. */
 .prose p { margin: 0.35em 0; }
