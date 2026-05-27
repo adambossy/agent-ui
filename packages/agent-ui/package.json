@@ -1,0 +1,46 @@
+{
+  "name": "@adambossy/agent-ui",
+  "version": "0.1.0",
+  "description": "React components and a live-component runtime for building agent chat UIs.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsup && cp src/styles.css dist/styles.css",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "lucide-react": "^1.16.0",
+    "streamdown": "^2.5.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "tsup": "^8.5.0",
+    "typescript": "~6.0.2"
+  }
+}

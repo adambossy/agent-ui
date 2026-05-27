@@ -1,38 +1,45 @@
-# agent_ui
+# agent-ui
 
-Research, planning, and a working prototype for a web UI that drives an AI agent
-backend.
-
-## Layout
+A React UI for driving AI agents — shipped as a library, [`@adambossy/agent-ui`](./packages/agent-ui),
+that deploy-owning projects import. This repo is a workspace monorepo: the
+library plus a dev playground that exercises it, alongside the research and
+planning that informed the design.
 
 ```
 .
-├── app/                     Vite + React + TS prototype
-│                              (chat surface, mock backend, real-backend connector)
-├── report/                  HTML research report covering six agent UIs
-│                              (ChatGPT, sst/opencode, earendil-works/pi,
-│                               OpenAI ChatKit, Vercel Chat SDK, AI Elements)
-├── plan/                    SmartPlan tree for implementing the web UI
-│                              against `agent_harness` over the AI SDK protocol
-├── notes/                   Implementation references
-│                              (resumable streams, etc.)
-├── chatgpt/                 Per-target research findings
-├── opencode/                  ”
-├── pi/                        ”
-├── chatkit-js/                ”
-├── vercel-chat-sdk/           ”
-└── vercel-ai-elements/        ”
+├── packages/
+│   └── agent-ui/      # The library (@adambossy/agent-ui): chat components + live-component runtime
+├── apps/
+│   └── playground/    # Vite dev harness — mock backend + a real-backend connector
+└── docs/
+    ├── research/      # Findings on agent UIs (ChatGPT, opencode, pi, ChatKit, Vercel Chat SDK, AI Elements, …)
+    ├── plans/         # SmartPlan implementation trees (web-ui, live-components)
+    └── notes/         # Implementation references (resumable streams, live-components design)
 ```
 
 ## Quickstart
 
 ```bash
-cd app
-npm install
-npm run dev                       # mock backend (default)
-# or
-VITE_BACKEND=real npm run dev     # talks to a local vercel/chatbot template
+npm install              # installs all workspaces
+
+npm run dev              # run the playground against the mock backend
+npm run build            # build the library (@adambossy/agent-ui)
+npm run build:playground # type-check + bundle the playground
+npm run lint             # lint all workspaces
+npm run typecheck        # type-check all workspaces
 ```
 
-See `report/index.html` for the research overview, `plan/index.html` for the
-implementation plan, and `app/src/` for the prototype source.
+The playground resolves `@adambossy/agent-ui` to the library **source** via a Vite
+alias, so edits to the library show up immediately — no build step needed during
+development.
+
+## Using the library
+
+`@adambossy/agent-ui` is currently private (not published). Consume it via the
+workspace, a git dependency, or `npm pack`. See the
+[package README](./packages/agent-ui/README.md) for the API surface, the
+Tailwind/styles setup, and integration notes.
+
+## License
+
+[MIT](./LICENSE)

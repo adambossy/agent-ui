@@ -1,0 +1,2072 @@
+data: {"type":"start","messageId":"f1f90b2f-f4a6-4215-88a4-7b622a7ab6ec"}
+
+data: {"type":"start-step"}
+
+data: {"type":"tool-input-start","toolCallId":"toolu_01MiP1v1tNA1d75kdkA1x76s","toolName":"createDocument"}
+
+data: {"type":"tool-input-delta","toolCallId":"toolu_01MiP1v1tNA1d75kdkA1x76s","inputTextDelta":"{\"title\": \"The Three Most Important Roman Emperors"}
+
+data: {"type":"tool-input-delta","toolCallId":"toolu_01MiP1v1tNA1d75kdkA1x76s","inputTextDelta":"\", \"kind\": \"text"}
+
+data: {"type":"tool-input-delta","toolCallId":"toolu_01MiP1v1tNA1d75kdkA1x76s","inputTextDelta":"\"}"}
+
+data: {"type":"data-kind","data":"text","transient":true}
+
+data: {"type":"data-id","data":"62f55823-e26c-42cc-8ee4-00954f643cc8","transient":true}
+
+data: {"type":"data-title","data":"The Three Most Important Roman Emperors","transient":true}
+
+data: {"type":"data-clear","data":null,"transient":true}
+
+data: {"type":"tool-input-available","toolCallId":"toolu_01MiP1v1tNA1d75kdkA1x76s","toolName":"createDocument","input":{"title":"The Three Most Important Roman Emperors","kind":"text"},"providerMetadata":{"anthropic":{"caller":{"type":"direct"}}}}
+
+data: {"type":"data-textDelta","data":"# ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Three ","transient":true}
+
+data: {"type":"data-textDelta","data":"Most ","transient":true}
+
+data: {"type":"data-textDelta","data":"Important ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Emperors\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire, ","transient":true}
+
+data: {"type":"data-textDelta","data":"spanning ","transient":true}
+
+data: {"type":"data-textDelta","data":"over ","transient":true}
+
+data: {"type":"data-textDelta","data":"five ","transient":true}
+
+data: {"type":"data-textDelta","data":"centuries ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"dominance, ","transient":true}
+
+data: {"type":"data-textDelta","data":"was ","transient":true}
+
+data: {"type":"data-textDelta","data":"shaped ","transient":true}
+
+data: {"type":"data-textDelta","data":"by ","transient":true}
+
+data: {"type":"data-textDelta","data":"numerous ","transient":true}
+
+data: {"type":"data-textDelta","data":"rulers. ","transient":true}
+
+data: {"type":"data-textDelta","data":"While ","transient":true}
+
+data: {"type":"data-textDelta","data":"many ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperors ","transient":true}
+
+data: {"type":"data-textDelta","data":"left ","transient":true}
+
+data: {"type":"data-textDelta","data":"their ","transient":true}
+
+data: {"type":"data-textDelta","data":"mark ","transient":true}
+
+data: {"type":"data-textDelta","data":"on ","transient":true}
+
+data: {"type":"data-textDelta","data":"history, ","transient":true}
+
+data: {"type":"data-textDelta","data":"three ","transient":true}
+
+data: {"type":"data-textDelta","data":"stand ","transient":true}
+
+data: {"type":"data-textDelta","data":"out ","transient":true}
+
+data: {"type":"data-textDelta","data":"for ","transient":true}
+
+data: {"type":"data-textDelta","data":"their ","transient":true}
+
+data: {"type":"data-textDelta","data":"transformative ","transient":true}
+
+data: {"type":"data-textDelta","data":"impact ","transient":true}
+
+data: {"type":"data-textDelta","data":"on ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"political ","transient":true}
+
+data: {"type":"data-textDelta","data":"structure, ","transient":true}
+
+data: {"type":"data-textDelta","data":"territorial ","transient":true}
+
+data: {"type":"data-textDelta","data":"expansion, ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"lasting ","transient":true}
+
+data: {"type":"data-textDelta","data":"legacy: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan, ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Great.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"## ","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"(27 ","transient":true}
+
+data: {"type":"data-textDelta","data":"BCE ","transient":true}
+
+data: {"type":"data-textDelta","data":"â€“ ","transient":true}
+
+data: {"type":"data-textDelta","data":"14 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Founder ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"From ","transient":true}
+
+data: {"type":"data-textDelta","data":"Republic ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Born ","transient":true}
+
+data: {"type":"data-textDelta","data":"Gaius ","transient":true}
+
+data: {"type":"data-textDelta","data":"Octavius, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"was ","transient":true}
+
+data: {"type":"data-textDelta","data":"Julius ","transient":true}
+
+data: {"type":"data-textDelta","data":"Caesar's ","transient":true}
+
+data: {"type":"data-textDelta","data":"adopted ","transient":true}
+
+data: {"type":"data-textDelta","data":"heir ","transient":true}
+
+data: {"type":"data-textDelta","data":"who ","transient":true}
+
+data: {"type":"data-textDelta","data":"transformed ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome ","transient":true}
+
+data: {"type":"data-textDelta","data":"from ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"war-torn ","transient":true}
+
+data: {"type":"data-textDelta","data":"republic ","transient":true}
+
+data: {"type":"data-textDelta","data":"into ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"stable ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire. ","transient":true}
+
+data: {"type":"data-textDelta","data":"After ","transient":true}
+
+data: {"type":"data-textDelta","data":"defeating ","transient":true}
+
+data: {"type":"data-textDelta","data":"Mark ","transient":true}
+
+data: {"type":"data-textDelta","data":"Antony ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Cleopatra ","transient":true}
+
+data: {"type":"data-textDelta","data":"at ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Battle ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Actium ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"31 ","transient":true}
+
+data: {"type":"data-textDelta","data":"BCE, ","transient":true}
+
+data: {"type":"data-textDelta","data":"he ","transient":true}
+
+data: {"type":"data-textDelta","data":"became ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"undisputed ","transient":true}
+
+data: {"type":"data-textDelta","data":"leader, ","transient":true}
+
+data: {"type":"data-textDelta","data":"though ","transient":true}
+
+data: {"type":"data-textDelta","data":"he ","transient":true}
+
+data: {"type":"data-textDelta","data":"carefully ","transient":true}
+
+data: {"type":"data-textDelta","data":"avoided ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"appearance ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"monarchy ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"had ","transient":true}
+
+data: {"type":"data-textDelta","data":"cost ","transient":true}
+
+data: {"type":"data-textDelta","data":"Caesar ","transient":true}
+
+data: {"type":"data-textDelta","data":"his ","transient":true}
+
+data: {"type":"data-textDelta","data":"life.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Revolutionary ","transient":true}
+
+data: {"type":"data-textDelta","data":"Reforms\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"established ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Principate**, ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"system ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"maintained ","transient":true}
+
+data: {"type":"data-textDelta","data":"republican ","transient":true}
+
+data: {"type":"data-textDelta","data":"faÃ§ades ","transient":true}
+
+data: {"type":"data-textDelta","data":"while ","transient":true}
+
+data: {"type":"data-textDelta","data":"concentrating ","transient":true}
+
+data: {"type":"data-textDelta","data":"real ","transient":true}
+
+data: {"type":"data-textDelta","data":"power ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperor's ","transient":true}
+
+data: {"type":"data-textDelta","data":"hands. ","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"reforms ","transient":true}
+
+data: {"type":"data-textDelta","data":"touched ","transient":true}
+
+data: {"type":"data-textDelta","data":"every ","transient":true}
+
+data: {"type":"data-textDelta","data":"aspect ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"life:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Military ","transient":true}
+
+data: {"type":"data-textDelta","data":"reorganization**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Created ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"standing ","transient":true}
+
+data: {"type":"data-textDelta","data":"professional ","transient":true}
+
+data: {"type":"data-textDelta","data":"army ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Praetorian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Guard\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Administrative ","transient":true}
+
+data: {"type":"data-textDelta","data":"efficiency**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Divided ","transient":true}
+
+data: {"type":"data-textDelta","data":"provinces ","transient":true}
+
+data: {"type":"data-textDelta","data":"between ","transient":true}
+
+data: {"type":"data-textDelta","data":"senatorial ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"control\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Infrastructure ","transient":true}
+
+data: {"type":"data-textDelta","data":"development**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Built ","transient":true}
+
+data: {"type":"data-textDelta","data":"roads, ","transient":true}
+
+data: {"type":"data-textDelta","data":"aqueducts, ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"public ","transient":true}
+
+data: {"type":"data-textDelta","data":"buildings ","transient":true}
+
+data: {"type":"data-textDelta","data":"across ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Cultural ","transient":true}
+
+data: {"type":"data-textDelta","data":"patronage**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Sponsored ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"arts, ","transient":true}
+
+data: {"type":"data-textDelta","data":"leading ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"golden ","transient":true}
+
+data: {"type":"data-textDelta","data":"age ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"literature ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"figures ","transient":true}
+
+data: {"type":"data-textDelta","data":"like ","transient":true}
+
+data: {"type":"data-textDelta","data":"Virgil ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Horace\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Pax ","transient":true}
+
+data: {"type":"data-textDelta","data":"Romana\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"inaugurated ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Pax ","transient":true}
+
+data: {"type":"data-textDelta","data":"Romana** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Peace), ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"200-year ","transient":true}
+
+data: {"type":"data-textDelta","data":"period ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"relative ","transient":true}
+
+data: {"type":"data-textDelta","data":"stability ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"prosperity. ","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"claim ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"he ","transient":true}
+
+data: {"type":"data-textDelta","data":"\"found ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"city ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"brick ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"left ","transient":true}
+
+data: {"type":"data-textDelta","data":"it ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"city ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"marble\" ","transient":true}
+
+data: {"type":"data-textDelta","data":"reflected ","transient":true}
+
+data: {"type":"data-textDelta","data":"both ","transient":true}
+
+data: {"type":"data-textDelta","data":"literal ","transient":true}
+
+data: {"type":"data-textDelta","data":"urban ","transient":true}
+
+data: {"type":"data-textDelta","data":"transformation ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"metaphorical ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"grandeur.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Lasting ","transient":true}
+
+data: {"type":"data-textDelta","data":"Impact\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"created ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"template ","transient":true}
+
+data: {"type":"data-textDelta","data":"for ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"rule ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"lasted ","transient":true}
+
+data: {"type":"data-textDelta","data":"centuries. ","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"political ","transient":true}
+
+data: {"type":"data-textDelta","data":"settlement ","transient":true}
+
+data: {"type":"data-textDelta","data":"solved ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"crisis ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"had ","transient":true}
+
+data: {"type":"data-textDelta","data":"destroyed ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Republic, ","transient":true}
+
+data: {"type":"data-textDelta","data":"providing ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"framework ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"balanced ","transient":true}
+
+data: {"type":"data-textDelta","data":"autocracy ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"traditional ","transient":true}
+
+data: {"type":"data-textDelta","data":"institutions. ","transient":true}
+
+data: {"type":"data-textDelta","data":"Every ","transient":true}
+
+data: {"type":"data-textDelta","data":"subsequent ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperor ","transient":true}
+
+data: {"type":"data-textDelta","data":"would ","transient":true}
+
+data: {"type":"data-textDelta","data":"be ","transient":true}
+
+data: {"type":"data-textDelta","data":"measured ","transient":true}
+
+data: {"type":"data-textDelta","data":"against ","transient":true}
+
+data: {"type":"data-textDelta","data":"his ","transient":true}
+
+data: {"type":"data-textDelta","data":"standard.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"## ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan ","transient":true}
+
+data: {"type":"data-textDelta","data":"(98 ","transient":true}
+
+data: {"type":"data-textDelta","data":"â€“ ","transient":true}
+
+data: {"type":"data-textDelta","data":"117 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"at ","transient":true}
+
+data: {"type":"data-textDelta","data":"Its ","transient":true}
+
+data: {"type":"data-textDelta","data":"Zenith\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Optimus ","transient":true}
+
+data: {"type":"data-textDelta","data":"Princeps\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Marcus ","transient":true}
+
+data: {"type":"data-textDelta","data":"Ulpius ","transient":true}
+
+data: {"type":"data-textDelta","data":"Traianus, ","transient":true}
+
+data: {"type":"data-textDelta","data":"known ","transient":true}
+
+data: {"type":"data-textDelta","data":"simply ","transient":true}
+
+data: {"type":"data-textDelta","data":"as ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan, ","transient":true}
+
+data: {"type":"data-textDelta","data":"earned ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"title ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Optimus ","transient":true}
+
+data: {"type":"data-textDelta","data":"Princeps** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(\"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"best ","transient":true}
+
+data: {"type":"data-textDelta","data":"ruler\"). ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"first ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperor ","transient":true}
+
+data: {"type":"data-textDelta","data":"born ","transient":true}
+
+data: {"type":"data-textDelta","data":"outside ","transient":true}
+
+data: {"type":"data-textDelta","data":"Italy ","transient":true}
+
+data: {"type":"data-textDelta","data":"(in ","transient":true}
+
+data: {"type":"data-textDelta","data":"Hispania), ","transient":true}
+
+data: {"type":"data-textDelta","data":"his ","transient":true}
+
+data: {"type":"data-textDelta","data":"reign ","transient":true}
+
+data: {"type":"data-textDelta","data":"represented ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"at ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"geographical ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"arguably ","transient":true}
+
+data: {"type":"data-textDelta","data":"cultural ","transient":true}
+
+data: {"type":"data-textDelta","data":"peak.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Military ","transient":true}
+
+data: {"type":"data-textDelta","data":"Conquests\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan ","transient":true}
+
+data: {"type":"data-textDelta","data":"was ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"greatest ","transient":true}
+
+data: {"type":"data-textDelta","data":"conqueror ","transient":true}
+
+data: {"type":"data-textDelta","data":"since ","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Dacian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Wars** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(101-102, ","transient":true}
+
+data: {"type":"data-textDelta","data":"105-106 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"Conquered ","transient":true}
+
+data: {"type":"data-textDelta","data":"Dacia ","transient":true}
+
+data: {"type":"data-textDelta","data":"(modern ","transient":true}
+
+data: {"type":"data-textDelta","data":"Romania), ","transient":true}
+
+data: {"type":"data-textDelta","data":"securing ","transient":true}
+
+data: {"type":"data-textDelta","data":"vast ","transient":true}
+
+data: {"type":"data-textDelta","data":"gold ","transient":true}
+
+data: {"type":"data-textDelta","data":"mines ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"financed ","transient":true}
+
+data: {"type":"data-textDelta","data":"his ","transient":true}
+
+data: {"type":"data-textDelta","data":"ambitious ","transient":true}
+
+data: {"type":"data-textDelta","data":"programs\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Parthian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Campaign** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(114-117 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"Briefly ","transient":true}
+
+data: {"type":"data-textDelta","data":"extended ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"maximum ","transient":true}
+
+data: {"type":"data-textDelta","data":"territorial ","transient":true}
+
+data: {"type":"data-textDelta","data":"extent, ","transient":true}
+
+data: {"type":"data-textDelta","data":"reaching ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Persian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Gulf\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"military ","transient":true}
+
+data: {"type":"data-textDelta","data":"successes ","transient":true}
+
+data: {"type":"data-textDelta","data":"brought ","transient":true}
+
+data: {"type":"data-textDelta","data":"immense ","transient":true}
+
+data: {"type":"data-textDelta","data":"wealth ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"prestige ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Domestic ","transient":true}
+
+data: {"type":"data-textDelta","data":"Achievements\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Beyond ","transient":true}
+
+data: {"type":"data-textDelta","data":"military ","transient":true}
+
+data: {"type":"data-textDelta","data":"glory, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan ","transient":true}
+
+data: {"type":"data-textDelta","data":"was ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"masterful ","transient":true}
+
+data: {"type":"data-textDelta","data":"administrator:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Building ","transient":true}
+
+data: {"type":"data-textDelta","data":"programs**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constructed ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan's ","transient":true}
+
+data: {"type":"data-textDelta","data":"Forum, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan's ","transient":true}
+
+data: {"type":"data-textDelta","data":"Market ","transient":true}
+
+data: {"type":"data-textDelta","data":"(an ","transient":true}
+
+data: {"type":"data-textDelta","data":"early ","transient":true}
+
+data: {"type":"data-textDelta","data":"shopping ","transient":true}
+
+data: {"type":"data-textDelta","data":"complex), ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan's ","transient":true}
+
+data: {"type":"data-textDelta","data":"Column ","transient":true}
+
+data: {"type":"data-textDelta","data":"(commemorating ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Dacian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Wars)\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Social ","transient":true}
+
+data: {"type":"data-textDelta","data":"welfare**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Expanded ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"**alimenta** ","transient":true}
+
+data: {"type":"data-textDelta","data":"program, ","transient":true}
+
+data: {"type":"data-textDelta","data":"providing ","transient":true}
+
+data: {"type":"data-textDelta","data":"financial ","transient":true}
+
+data: {"type":"data-textDelta","data":"assistance ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"poor ","transient":true}
+
+data: {"type":"data-textDelta","data":"children ","transient":true}
+
+data: {"type":"data-textDelta","data":"across ","transient":true}
+
+data: {"type":"data-textDelta","data":"Italy\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Infrastructure**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Built ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Via ","transient":true}
+
+data: {"type":"data-textDelta","data":"Traiana ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"improved ","transient":true}
+
+data: {"type":"data-textDelta","data":"harbors, ","transient":true}
+
+data: {"type":"data-textDelta","data":"including ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"new ","transient":true}
+
+data: {"type":"data-textDelta","data":"harbor ","transient":true}
+
+data: {"type":"data-textDelta","data":"at ","transient":true}
+
+data: {"type":"data-textDelta","data":"Ostia\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Provincial ","transient":true}
+
+data: {"type":"data-textDelta","data":"integration**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Promoted ","transient":true}
+
+data: {"type":"data-textDelta","data":"provincial ","transient":true}
+
+data: {"type":"data-textDelta","data":"citizens ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"high ","transient":true}
+
+data: {"type":"data-textDelta","data":"office, ","transient":true}
+
+data: {"type":"data-textDelta","data":"furthering ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"cosmopolitan ","transient":true}
+
+data: {"type":"data-textDelta","data":"character\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"A ","transient":true}
+
+data: {"type":"data-textDelta","data":"Model ","transient":true}
+
+data: {"type":"data-textDelta","data":"Ruler\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Senate ","transient":true}
+
+data: {"type":"data-textDelta","data":"automatically ","transient":true}
+
+data: {"type":"data-textDelta","data":"wished ","transient":true}
+
+data: {"type":"data-textDelta","data":"future ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperors ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"be ","transient":true}
+
+data: {"type":"data-textDelta","data":"\"luckier ","transient":true}
+
+data: {"type":"data-textDelta","data":"than ","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"better ","transient":true}
+
+data: {"type":"data-textDelta","data":"than ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan.\" ","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"reign ","transient":true}
+
+data: {"type":"data-textDelta","data":"exemplified ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"principle ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperor ","transient":true}
+
+data: {"type":"data-textDelta","data":"should ","transient":true}
+
+data: {"type":"data-textDelta","data":"be ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"servant ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"state, ","transient":true}
+
+data: {"type":"data-textDelta","data":"not ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"master. ","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"correspondence ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"Pliny ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Younger ","transient":true}
+
+data: {"type":"data-textDelta","data":"reveals ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"thoughtful ","transient":true}
+
+data: {"type":"data-textDelta","data":"administrator ","transient":true}
+
+data: {"type":"data-textDelta","data":"concerned ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"justice ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"efficient ","transient":true}
+
+data: {"type":"data-textDelta","data":"governance.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Territorial ","transient":true}
+
+data: {"type":"data-textDelta","data":"Legacy\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Though ","transient":true}
+
+data: {"type":"data-textDelta","data":"some ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan's ","transient":true}
+
+data: {"type":"data-textDelta","data":"eastern ","transient":true}
+
+data: {"type":"data-textDelta","data":"conquests ","transient":true}
+
+data: {"type":"data-textDelta","data":"proved ","transient":true}
+
+data: {"type":"data-textDelta","data":"unsustainable, ","transient":true}
+
+data: {"type":"data-textDelta","data":"his ","transient":true}
+
+data: {"type":"data-textDelta","data":"expansion ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"approximately ","transient":true}
+
+data: {"type":"data-textDelta","data":"5 ","transient":true}
+
+data: {"type":"data-textDelta","data":"million ","transient":true}
+
+data: {"type":"data-textDelta","data":"square ","transient":true}
+
+data: {"type":"data-textDelta","data":"kilometers ","transient":true}
+
+data: {"type":"data-textDelta","data":"represented ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"maximum ","transient":true}
+
+data: {"type":"data-textDelta","data":"extent. ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"would ","transient":true}
+
+data: {"type":"data-textDelta","data":"never ","transient":true}
+
+data: {"type":"data-textDelta","data":"again ","transient":true}
+
+data: {"type":"data-textDelta","data":"expand ","transient":true}
+
+data: {"type":"data-textDelta","data":"so ","transient":true}
+
+data: {"type":"data-textDelta","data":"dramatically.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"## ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Great ","transient":true}
+
+data: {"type":"data-textDelta","data":"(306 ","transient":true}
+
+data: {"type":"data-textDelta","data":"â€“ ","transient":true}
+
+data: {"type":"data-textDelta","data":"337 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Emperor\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Transformation ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Faith\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"transformed ","transient":true}
+
+data: {"type":"data-textDelta","data":"both ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christianity ","transient":true}
+
+data: {"type":"data-textDelta","data":"itself, ","transient":true}
+
+data: {"type":"data-textDelta","data":"creating ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"synthesis ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"would ","transient":true}
+
+data: {"type":"data-textDelta","data":"define ","transient":true}
+
+data: {"type":"data-textDelta","data":"European ","transient":true}
+
+data: {"type":"data-textDelta","data":"civilization ","transient":true}
+
+data: {"type":"data-textDelta","data":"for ","transient":true}
+
+data: {"type":"data-textDelta","data":"over ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"millennium.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"Conversion\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine's ","transient":true}
+
+data: {"type":"data-textDelta","data":"embrace ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christianityâ€”traditionally ","transient":true}
+
+data: {"type":"data-textDelta","data":"dated ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"his ","transient":true}
+
+data: {"type":"data-textDelta","data":"vision ","transient":true}
+
+data: {"type":"data-textDelta","data":"before ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Battle ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Milvian ","transient":true}
+
+data: {"type":"data-textDelta","data":"Bridge ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"312 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CEâ€”fundamentally ","transient":true}
+
+data: {"type":"data-textDelta","data":"altered ","transient":true}
+
+data: {"type":"data-textDelta","data":"world ","transient":true}
+
+data: {"type":"data-textDelta","data":"history:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Edict ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Milan** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(313 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"Granted ","transient":true}
+
+data: {"type":"data-textDelta","data":"religious ","transient":true}
+
+data: {"type":"data-textDelta","data":"tolerance ","transient":true}
+
+data: {"type":"data-textDelta","data":"throughout ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire, ","transient":true}
+
+data: {"type":"data-textDelta","data":"ending ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"persecution\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"patronage**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christianity ","transient":true}
+
+data: {"type":"data-textDelta","data":"transformed ","transient":true}
+
+data: {"type":"data-textDelta","data":"from ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"persecuted ","transient":true}
+
+data: {"type":"data-textDelta","data":"sect ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire's ","transient":true}
+
+data: {"type":"data-textDelta","data":"favored ","transient":true}
+
+data: {"type":"data-textDelta","data":"religion\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Council ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Nicaea** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(325 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE): ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"convened ","transient":true}
+
+data: {"type":"data-textDelta","data":"this ","transient":true}
+
+data: {"type":"data-textDelta","data":"ecumenical ","transient":true}
+
+data: {"type":"data-textDelta","data":"council, ","transient":true}
+
+data: {"type":"data-textDelta","data":"establishing ","transient":true}
+
+data: {"type":"data-textDelta","data":"orthodox ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"doctrine ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Nicene ","transient":true}
+
+data: {"type":"data-textDelta","data":"Creed\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantinople: ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"New ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"In ","transient":true}
+
+data: {"type":"data-textDelta","data":"330 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"founded ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Constantinople** ","transient":true}
+
+data: {"type":"data-textDelta","data":"(modern ","transient":true}
+
+data: {"type":"data-textDelta","data":"Istanbul) ","transient":true}
+
+data: {"type":"data-textDelta","data":"as ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire's ","transient":true}
+
+data: {"type":"data-textDelta","data":"new ","transient":true}
+
+data: {"type":"data-textDelta","data":"eastern ","transient":true}
+
+data: {"type":"data-textDelta","data":"capital:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"Strategically ","transient":true}
+
+data: {"type":"data-textDelta","data":"located ","transient":true}
+
+data: {"type":"data-textDelta","data":"between ","transient":true}
+
+data: {"type":"data-textDelta","data":"Europe ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Asia\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"Built ","transient":true}
+
+data: {"type":"data-textDelta","data":"as ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"city ","transient":true}
+
+data: {"type":"data-textDelta","data":"from ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"beginning, ","transient":true}
+
+data: {"type":"data-textDelta","data":"unlike ","transient":true}
+
+data: {"type":"data-textDelta","data":"pagan ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"Became ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"wealthiest ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"most ","transient":true}
+
+data: {"type":"data-textDelta","data":"important ","transient":true}
+
+data: {"type":"data-textDelta","data":"city ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Mediterranean ","transient":true}
+
+data: {"type":"data-textDelta","data":"for ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"thousand ","transient":true}
+
+data: {"type":"data-textDelta","data":"years\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"Symbolized ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire's ","transient":true}
+
+data: {"type":"data-textDelta","data":"eastward ","transient":true}
+
+data: {"type":"data-textDelta","data":"shift ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"identity\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Political ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Military ","transient":true}
+
+data: {"type":"data-textDelta","data":"Reforms\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"restructured ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"administration:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Bureaucratic ","transient":true}
+
+data: {"type":"data-textDelta","data":"expansion**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Created ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"more ","transient":true}
+
+data: {"type":"data-textDelta","data":"elaborate ","transient":true}
+
+data: {"type":"data-textDelta","data":"civilian ","transient":true}
+
+data: {"type":"data-textDelta","data":"bureaucracy ","transient":true}
+
+data: {"type":"data-textDelta","data":"separate ","transient":true}
+
+data: {"type":"data-textDelta","data":"from ","transient":true}
+
+data: {"type":"data-textDelta","data":"military ","transient":true}
+
+data: {"type":"data-textDelta","data":"command\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Military ","transient":true}
+
+data: {"type":"data-textDelta","data":"reorganization**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Distinguished ","transient":true}
+
+data: {"type":"data-textDelta","data":"between ","transient":true}
+
+data: {"type":"data-textDelta","data":"frontier ","transient":true}
+
+data: {"type":"data-textDelta","data":"troops ","transient":true}
+
+data: {"type":"data-textDelta","data":"(*limitanei*) ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"mobile ","transient":true}
+
+data: {"type":"data-textDelta","data":"field ","transient":true}
+
+data: {"type":"data-textDelta","data":"armies ","transient":true}
+
+data: {"type":"data-textDelta","data":"(*comitatenses*)\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Economic ","transient":true}
+
+data: {"type":"data-textDelta","data":"reforms**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Introduced ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"*solidus*, ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"stable ","transient":true}
+
+data: {"type":"data-textDelta","data":"gold ","transient":true}
+
+data: {"type":"data-textDelta","data":"coin ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"remained ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Mediterranean's ","transient":true}
+
+data: {"type":"data-textDelta","data":"standard ","transient":true}
+
+data: {"type":"data-textDelta","data":"currency ","transient":true}
+
+data: {"type":"data-textDelta","data":"for ","transient":true}
+
+data: {"type":"data-textDelta","data":"centuries\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Legal ","transient":true}
+
+data: {"type":"data-textDelta","data":"reforms**: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Modified ","transient":true}
+
+data: {"type":"data-textDelta","data":"laws ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"reflect ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"values, ","transient":true}
+
+data: {"type":"data-textDelta","data":"though ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"legal ","transient":true}
+
+data: {"type":"data-textDelta","data":"principles ","transient":true}
+
+data: {"type":"data-textDelta","data":"remained ","transient":true}
+
+data: {"type":"data-textDelta","data":"intact\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"### ","transient":true}
+
+data: {"type":"data-textDelta","data":"Historical ","transient":true}
+
+data: {"type":"data-textDelta","data":"Significance\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine's ","transient":true}
+
+data: {"type":"data-textDelta","data":"reign ","transient":true}
+
+data: {"type":"data-textDelta","data":"marked ","transient":true}
+
+data: {"type":"data-textDelta","data":"a ","transient":true}
+
+data: {"type":"data-textDelta","data":"definitive ","transient":true}
+
+data: {"type":"data-textDelta","data":"break ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"pagan ","transient":true}
+
+data: {"type":"data-textDelta","data":"past. ","transient":true}
+
+data: {"type":"data-textDelta","data":"While ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Western ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"would ","transient":true}
+
+data: {"type":"data-textDelta","data":"fall ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"476 ","transient":true}
+
+data: {"type":"data-textDelta","data":"CE, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantinople ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Eastern ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"(Byzantine) ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"would ","transient":true}
+
+data: {"type":"data-textDelta","data":"continue ","transient":true}
+
+data: {"type":"data-textDelta","data":"for ","transient":true}
+
+data: {"type":"data-textDelta","data":"another ","transient":true}
+
+data: {"type":"data-textDelta","data":"thousand ","transient":true}
+
+data: {"type":"data-textDelta","data":"years, ","transient":true}
+
+data: {"type":"data-textDelta","data":"preserving ","transient":true}
+
+data: {"type":"data-textDelta","data":"classical ","transient":true}
+
+data: {"type":"data-textDelta","data":"knowledge ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"orthodoxy.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"His ","transient":true}
+
+data: {"type":"data-textDelta","data":"fusion ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"authority ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"doctrine ","transient":true}
+
+data: {"type":"data-textDelta","data":"created ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"model ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Christian ","transient":true}
+
+data: {"type":"data-textDelta","data":"kingship ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"dominated ","transient":true}
+
+data: {"type":"data-textDelta","data":"medieval ","transient":true}
+
+data: {"type":"data-textDelta","data":"Europe. ","transient":true}
+
+data: {"type":"data-textDelta","data":"The ","transient":true}
+
+data: {"type":"data-textDelta","data":"relationship ","transient":true}
+
+data: {"type":"data-textDelta","data":"between ","transient":true}
+
+data: {"type":"data-textDelta","data":"church ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"state ","transient":true}
+
+data: {"type":"data-textDelta","data":"that ","transient":true}
+
+data: {"type":"data-textDelta","data":"he ","transient":true}
+
+data: {"type":"data-textDelta","data":"initiatedâ€”with ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"tensions ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"collaborationsâ€”remains ","transient":true}
+
+data: {"type":"data-textDelta","data":"relevant ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"modern ","transient":true}
+
+data: {"type":"data-textDelta","data":"political ","transient":true}
+
+data: {"type":"data-textDelta","data":"discourse.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"## ","transient":true}
+
+data: {"type":"data-textDelta","data":"Conclusion: ","transient":true}
+
+data: {"type":"data-textDelta","data":"Three ","transient":true}
+
+data: {"type":"data-textDelta","data":"Pillars ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"Legacy\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"These ","transient":true}
+
+data: {"type":"data-textDelta","data":"three ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperors ","transient":true}
+
+data: {"type":"data-textDelta","data":"represent ","transient":true}
+
+data: {"type":"data-textDelta","data":"pivotal ","transient":true}
+
+data: {"type":"data-textDelta","data":"moments ","transient":true}
+
+data: {"type":"data-textDelta","data":"in ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"history:\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Augustus** ","transient":true}
+
+data: {"type":"data-textDelta","data":"created ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"empire ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"established ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"foundational ","transient":true}
+
+data: {"type":"data-textDelta","data":"political ","transient":true}
+
+data: {"type":"data-textDelta","data":"system\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Trajan** ","transient":true}
+
+data: {"type":"data-textDelta","data":"brought ","transient":true}
+
+data: {"type":"data-textDelta","data":"it ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"greatest ","transient":true}
+
+data: {"type":"data-textDelta","data":"geographical ","transient":true}
+
+data: {"type":"data-textDelta","data":"extent ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"exemplified ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"ideal ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"governance\n","transient":true}
+
+data: {"type":"data-textDelta","data":"- ","transient":true}
+
+data: {"type":"data-textDelta","data":"**Constantine** ","transient":true}
+
+data: {"type":"data-textDelta","data":"transformed ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"spiritual ","transient":true}
+
+data: {"type":"data-textDelta","data":"identity ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"ensured ","transient":true}
+
+data: {"type":"data-textDelta","data":"its ","transient":true}
+
+data: {"type":"data-textDelta","data":"continuation ","transient":true}
+
+data: {"type":"data-textDelta","data":"through ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"Byzantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"Empire\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"Together, ","transient":true}
+
+data: {"type":"data-textDelta","data":"they ","transient":true}
+
+data: {"type":"data-textDelta","data":"shaped ","transient":true}
+
+data: {"type":"data-textDelta","data":"not ","transient":true}
+
+data: {"type":"data-textDelta","data":"only ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome ","transient":true}
+
+data: {"type":"data-textDelta","data":"but ","transient":true}
+
+data: {"type":"data-textDelta","data":"Western ","transient":true}
+
+data: {"type":"data-textDelta","data":"civilization ","transient":true}
+
+data: {"type":"data-textDelta","data":"itself. ","transient":true}
+
+data: {"type":"data-textDelta","data":"Augustus ","transient":true}
+
+data: {"type":"data-textDelta","data":"gave ","transient":true}
+
+data: {"type":"data-textDelta","data":"us ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"concept ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"imperial ","transient":true}
+
+data: {"type":"data-textDelta","data":"administration, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Trajan ","transient":true}
+
+data: {"type":"data-textDelta","data":"demonstrated ","transient":true}
+
+data: {"type":"data-textDelta","data":"the ","transient":true}
+
+data: {"type":"data-textDelta","data":"responsibilities ","transient":true}
+
+data: {"type":"data-textDelta","data":"of ","transient":true}
+
+data: {"type":"data-textDelta","data":"power, ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"Constantine ","transient":true}
+
+data: {"type":"data-textDelta","data":"linked ","transient":true}
+
+data: {"type":"data-textDelta","data":"political ","transient":true}
+
+data: {"type":"data-textDelta","data":"authority ","transient":true}
+
+data: {"type":"data-textDelta","data":"with ","transient":true}
+
+data: {"type":"data-textDelta","data":"religious ","transient":true}
+
+data: {"type":"data-textDelta","data":"mission. ","transient":true}
+
+data: {"type":"data-textDelta","data":"Their ","transient":true}
+
+data: {"type":"data-textDelta","data":"combined ","transient":true}
+
+data: {"type":"data-textDelta","data":"legaciesâ€”in ","transient":true}
+
+data: {"type":"data-textDelta","data":"law, ","transient":true}
+
+data: {"type":"data-textDelta","data":"architecture, ","transient":true}
+
+data: {"type":"data-textDelta","data":"political ","transient":true}
+
+data: {"type":"data-textDelta","data":"thought, ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"religious ","transient":true}
+
+data: {"type":"data-textDelta","data":"practiceâ€”continue ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"influence ","transient":true}
+
+data: {"type":"data-textDelta","data":"our ","transient":true}
+
+data: {"type":"data-textDelta","data":"world ","transient":true}
+
+data: {"type":"data-textDelta","data":"nearly ","transient":true}
+
+data: {"type":"data-textDelta","data":"two ","transient":true}
+
+data: {"type":"data-textDelta","data":"thousand ","transient":true}
+
+data: {"type":"data-textDelta","data":"years ","transient":true}
+
+data: {"type":"data-textDelta","data":"later.\n\n","transient":true}
+
+data: {"type":"data-textDelta","data":"While ","transient":true}
+
+data: {"type":"data-textDelta","data":"other ","transient":true}
+
+data: {"type":"data-textDelta","data":"emperors ","transient":true}
+
+data: {"type":"data-textDelta","data":"like ","transient":true}
+
+data: {"type":"data-textDelta","data":"Marcus ","transient":true}
+
+data: {"type":"data-textDelta","data":"Aurelius, ","transient":true}
+
+data: {"type":"data-textDelta","data":"Hadrian, ","transient":true}
+
+data: {"type":"data-textDelta","data":"or ","transient":true}
+
+data: {"type":"data-textDelta","data":"Diocletian ","transient":true}
+
+data: {"type":"data-textDelta","data":"merit ","transient":true}
+
+data: {"type":"data-textDelta","data":"consideration, ","transient":true}
+
+data: {"type":"data-textDelta","data":"these ","transient":true}
+
+data: {"type":"data-textDelta","data":"three ","transient":true}
+
+data: {"type":"data-textDelta","data":"fundamentally ","transient":true}
+
+data: {"type":"data-textDelta","data":"altered ","transient":true}
+
+data: {"type":"data-textDelta","data":"Rome's ","transient":true}
+
+data: {"type":"data-textDelta","data":"trajectory ","transient":true}
+
+data: {"type":"data-textDelta","data":"at ","transient":true}
+
+data: {"type":"data-textDelta","data":"critical ","transient":true}
+
+data: {"type":"data-textDelta","data":"junctures, ","transient":true}
+
+data: {"type":"data-textDelta","data":"making ","transient":true}
+
+data: {"type":"data-textDelta","data":"them ","transient":true}
+
+data: {"type":"data-textDelta","data":"indispensable ","transient":true}
+
+data: {"type":"data-textDelta","data":"to ","transient":true}
+
+data: {"type":"data-textDelta","data":"understanding ","transient":true}
+
+data: {"type":"data-textDelta","data":"both ","transient":true}
+
+data: {"type":"data-textDelta","data":"Roman ","transient":true}
+
+data: {"type":"data-textDelta","data":"and ","transient":true}
+
+data: {"type":"data-textDelta","data":"world ","transient":true}
+
+data: {"type":"data-textDelta","data":"history.","transient":true}
+
+data: {"type":"data-finish","data":null,"transient":true}
+
+data: {"type":"tool-output-available","toolCallId":"toolu_01MiP1v1tNA1d75kdkA1x76s","output":{"id":"62f55823-e26c-42cc-8ee4-00954f643cc8","title":"The Three Most Important Roman Emperors","kind":"text","content":"A document was created and is now visible to the user."}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"0"}
+
+data: {"type":"text-delta","id":"0","delta":"I"}
+
+data: {"type":"text-delta","id":"0","delta":"'ve created a markdown document about the three most important Roman emperors with headings and bullet lists."}
+
+data: {"type":"text-end","id":"0"}
+
+data: {"type":"finish-step"}
+
+data: {"type":"finish","finishReason":"stop"}
+
+data: [DONE]
+

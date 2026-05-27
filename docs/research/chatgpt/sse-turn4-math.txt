@@ -1,0 +1,157 @@
+event: delta_encoding
+data: "v1"
+
+data: {"type": "resume_conversation_token", "kind": "topic", "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb25kdWl0X3V1aWQiOiIyMGZlOGM0MmI5Y2I0YWJjOWVjZWI5NGZlZjczMTk5MyIsImNvbmR1aXRfbG9jYXRpb24iOiIxMC4xMzAuMTYyLjE0NDo4MzAzIiwiY2x1c3RlciI6InVuaWZpZWQtMTI0IiwiaWF0IjoxNzc5NjUxOTAzLCJleHAiOjE3Nzk2NTkxMDMsInR1cm5fdG9waWNfaWQiOiJjb252ZXJzYXRpb24tdHVybi0zNWE0MGM0Yy1hNmIyLTQyN2QtOTAwMi03NzVkNGNjNmIxNmYifQ.mmkiZ4GZRoXRY_BgnkttMqWX9DDm45-hDxdHuoG4IIZQBTExBGvbGupVCrl5zyRZejhUAbQluvM4TRoh1zmgLw", "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb"}
+
+data: {"type": "input_message", "input_message": {"id": "bee19e97-c21d-4eb1-a807-506d136ee6fa", "author": {"role": "user", "name": null, "metadata": {}}, "create_time": 1779651888.852, "update_time": null, "content": {"content_type": "text", "parts": ["Now solve this without searching: A user has 47 items in their cart, each priced at $12.99. They get 15% off, then have to pay 8.5% sales tax. What is the total? Show step by step."]}, "status": "finished_successfully", "end_turn": null, "weight": 1.0, "metadata": {"selected_github_repos": [], "selected_all_github_repos": false, "serialization_metadata": {"custom_symbol_offsets": []}, "request_id": "ab29ceed-6f79-4737-b289-df855c43d17f", "message_source": null, "turn_exchange_id": "35a40c4c-a6b2-427d-9002-775d4cc6b16f", "turn_trace_id": "91d4d7e0-faad-4498-9d83-562914fb9075", "useragent": {"client_type": "web", "is_mobile": false, "is_mobile_app": false, "is_desktop_app": false, "is_native_app": false, "is_native_app_apple": false, "is_mobile_app_ios": false, "is_desktop_app_macos": false, "is_aura_app_macos": false, "is_aura_web": false, "is_sora_ios": false, "is_agora_ios": false, "is_agora_android": false, "is_desktop_app_windows": false, "is_electron_app": false, "is_mobile_app_android": false, "is_mobile_web": false, "is_mobile_web_ios": false, "is_mobile_web_android": false, "is_ios": false, "is_android": false, "is_macos": true, "is_windows": false, "is_linux": false, "is_chatgpt_client": false, "is_moshi_client": false, "is_sora_client": false, "is_agora_client": false, "is_browserbased_app": true, "is_chatgpt_api": false, "is_slack": false, "is_chatkit_web": false, "is_chatkit_synthetic": false, "is_kakao_talk": false, "is_codex_desktop": false, "is_offline_caching": false, "app_version": null, "build_number": null, "user_agent": "mozilla/5.0 (macintosh; intel mac os x 10_15_7) applewebkit/537.36 (khtml, like gecko) chrome/147.0.0.0 safari/537.36", "app_environment": null, "os_version": null, "device_model": null, "user_client_type": "desktop_web"}, "paragen_stream_type": "default", "resolved_model_slug": "gpt-5-5", "parent_id": "56aed19b-110d-4186-8504-f6b8ab241384"}, "recipient": "all", "channel": null}, "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb"}
+
+event: delta
+data: {"p": "", "o": "add", "v": {"message": {"id": "92e89c79-e3a8-4f55-a068-778753658873", "author": {"role": "assistant", "name": null, "metadata": {}}, "create_time": 1779651901.922486, "update_time": null, "content": {"content_type": "text", "parts": [""]}, "status": "in_progress", "end_turn": null, "weight": 1.0, "metadata": {"citations": [], "content_references": [], "story_events": [], "resolved_model_slug": "gpt-5-5", "request_id": "ab29ceed-6f79-4737-b289-df855c43d17f", "message_type": "next", "turn_exchange_id": "35a40c4c-a6b2-427d-9002-775d4cc6b16f", "model_slug": "gpt-5-5", "default_model_slug": "auto", "parent_id": "bee19e97-c21d-4eb1-a807-506d136ee6fa", "model_switcher_deny": []}, "recipient": "all", "channel": "final"}, "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb", "error": null, "error_code": null}, "c": 0}       
+
+data: {"type": "message_marker", "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb", "message_id": "92e89c79-e3a8-4f55-a068-778753658873", "marker": "user_visible_token", "event": "first"}
+
+data: {"type": "message_marker", "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb", "message_id": "92e89c79-e3a8-4f55-a068-778753658873", "marker": "final_channel_token", "event": "first"}
+
+event: delta
+data: {"p": "/message/content/parts/0", "o": "append", "v": "1."}     
+
+event: delta
+data: {"v": " Compute"}       
+
+event: delta
+data: {"v": " the"}   
+
+event: delta
+data: {"v": " subtotal before"}       
+
+event: delta
+data: {"v": " discount:\n\n"} 
+
+event: delta
+data: {"v": "\\"}     
+
+event: delta
+data: {"v": "[\n"}    
+
+event: delta
+data: {"v": "47 \\"}  
+
+event: delta
+data: {"v": "times "} 
+
+event: delta
+data: {"v": "12"}     
+
+event: delta
+data: {"v": ".99"}    
+
+event: delta
+data: {"v": " = 610"} 
+
+event: delta
+data: {"v": ".53"}    
+
+event: delta
+data: {"v": "\n\\]\n\nSubtotal"}      
+
+event: delta
+data: {"v": " = **\\$610"}    
+
+event: delta
+data: {"v": ".53"}    
+
+event: delta
+data: {"v": "**\n\n2. Compute"}       
+
+event: delta
+data: {"v": " the 15"}
+
+event: delta
+data: {"v": "% discount"}     
+
+event: delta
+data: {"v": ":\n\n\\[\n"}     
+
+event: delta
+data: {"v": "610."}   
+
+event: delta
+data: {"v": "53 \\times 0."}  
+
+event: delta
+data: {"v": "15 = "}  
+
+event: delta
+data: {"v": "91"}     
+
+event: delta
+data: {"v": ".5795\n\\]\n\n"} 
+
+event: delta
+data: {"v": "Discount = **\\$91"}     
+
+event: delta
+data: {"v": ".58**\n\n3."}    
+
+event: delta
+data: {"v": " Subtract the discount:\n\n\\"}  
+
+event: delta
+data: {"v": "[\n610.53 - 91"} 
+
+event: delta
+data: {"v": ".5795 = 518"}    
+
+event: delta
+data: {"v": ".9505\n\\]\n\nDiscount"} 
+
+event: delta
+data: {"v": "ed subtotal = **\\$518.95**\n\n"}
+
+event: delta
+data: {"v": "4. Compute 8.5% sales"}  
+
+event: delta
+data: {"v": " tax on the discounted subtotal:\n\n\\[\n518"}   
+
+event: delta
+data: {"v": ".9505 \\times "} 
+
+event: delta
+data: {"v": "0.085 = 44"}     
+
+event: delta
+data: {"v": ".1107925\n\\]\n\nSales"} 
+
+event: delta
+data: {"v": " tax = **\\$44.11**\n\n5."}      
+
+event: delta
+data: {"v": " Add tax to the"}
+
+event: delta
+data: {"v": " discounted subtotal:\n\n\\[\n518.950"}  
+
+event: delta
+data: {"v": "5 + 44.1107925 = 563"}   
+
+event: delta
+data: {"v": ".0612925\n\\]\n\nFinal total:\n\n\\[\n"} 
+
+event: delta
+data: {"p": "", "o": "patch", "v": [{"p": "/message/content/parts/0", "o": "append", "v": "\\boxed{\\$563.06}\n\\]"}, {"p": "/message/status", "o": "replace", "v": "finished_successfully"}, {"p": "/message/end_turn", "o": "replace", "v": true}, {"p": "/message/metadata", "o": "append", "v": {"is_complete": true, "search_result_groups": [], "finish_details": {"type": "stop", "stop_tokens": [200002]}, "can_save": true}}]}       
+
+data: {"type": "message_marker", "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb", "message_id": "92e89c79-e3a8-4f55-a068-778753658873", "marker": "last_token", "event": "last"}
+
+: ping - 2026-05-24 19:45:19.040840+00:00
+
+data: {"type": "server_ste_metadata", "metadata": {"conduit_prewarmed": false, "plan_type": "free", "plan_type_bucket": "free", "user_agent": "web_desktop", "service": null, "tool_name": null, "tool_invoked": false, "fast_convo": true, "warmup_state": "locked", "is_first_turn": false, "cluster_region": "westus3", "model_slug": "gpt-5-5", "region": null, "is_multimodal": null, "did_auto_switch_to_reasoning": false, "auto_switcher_race_winner": null, "is_autoswitcher_enabled": false, "is_search": null, "did_prompt_contain_image": false, "search_tool_call_count": null, "search_tool_query_types": null, "message_id": "92e89c79-e3a8-4f55-a068-778753658873", "request_id": "ab29ceed-6f79-4737-b289-df855c43d17f", "turn_exchange_id": "35a40c4c-a6b2-427d-9002-775d4cc6b16f", "turn_trace_id": "91d4d7e0-faad-4498-9d83-562914fb9075", "a32e6ebcb": 1, "resume_with_websockets": true, "low_turn_topic_ttl": false, "streaming_async_status": false, "replace_stream_status": true, "temporal_conversation_turn": false, "pro_mode_turn_topic_streaming": true, "turn_use_case": "text", "turn_mode": "default"}, "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb"}
+
+data: {"type": "message_stream_complete", "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb"}
+
+data: {"type": "conversation_detail_metadata", "banner_info": null, "blocked_features": [], "model_limits": [], "limits_progress": [{"feature_name": "deep_research", "remaining": 5, "reset_after": "2026-06-23T19:45:20.175483+00:00"}, {"feature_name": "file_upload", "remaining": 3, "reset_after": "2026-05-25T19:45:20.175505+00:00"}, {"feature_name": "paste_text_to_file", "remaining": 3, "reset_after": "2026-05-25T19:45:20.175512+00:00"}, {"feature_name": "image_gen", "remaining": 5, "reset_after": "2026-05-25T19:45:20.175519+00:00"}], "default_model_slug": "auto", "atlas_mode_enabled": null, "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb"}
+
+data: {"type": "ads", "content": {"ads_request_id": "06a13554-8a93-78cd-8000-fd0ed81da23b", "ads_spam_integrity_payload": "gAAAAABqE1VM2o4Mnv58tIdc4BKfUOZnsHqG-BF3Q7VsCPFqwic4va9kKYe6h_4TGDeswgXWbrHV9jol9KNndGnzsNvopsP87I4YhD_DV6iKMABEtpkpcQtV2lCYeAXG0FTOKToaYG0of040jcXJEwcr1IO3cxTefh3Ls20jCS2fbFiZqEI-LLRMuZqY8OD4NBwWc4rv7nCMFIcp4-kKf-pc_syg7oBVLJkvMFjvksmJKTQeXiTqrRW3FnHns6bibu9wR-A_YWskOHp4utzwKu4Avg7t4wcyGZJqsELzySJZFlOVZ2Z2UES5i3vLrMn2UExG904e5GFQQAGDUbMWirEvsveBg5xl96a5-ACUyPDHXSRd3UhmsQyaOphS1vwPPc-S3DtbCVMTPAByAYA88Sowb6tN-bsJjz1SN4iCVb__MUILOCZsqqwTEWDXwu-4ryjrt8DRwfHxt6PYqIec9lcPopK-0pkTIFvPqKFHXUiIWaOFHfQDjbluDSrFYye4hPNGhc2f8oBwaJipzHTufOpOO8IOPid2QK695f3pkF8xirGhKnVZQZK40WaCYv4jx0vttFjHkyv-SiwurMS1yRS7ZYQ1pYZe7AyWI9bdam8msVPRbdF6gWthLZly1RUCMcWA9a2sYUNyxQHf_bagUNrJUqMD_NbRp5yv1VpG4Xa4qqC0o0Pa7mxWYYMVKg5f6z-sQjGGl7KtvPgF5u40duPn17QQO8hSszluKcpWJxhzpKxeZyB0ZhuTMFS0BCR0FUg5e4ZJTqpI4Ss9tOV8_kOGU-rz7KlhPj8fc2r3olxZ1Uf_sh_fbelcE27PeCkmdJOK4YD3DkH_hu-ezmciChgR7JRYP4LHXBovqSlpJ8WyWQV11hWcCm7qn_nBsgrZUxw-Iad4wZuy", "ad_unit_header": null, "type": "single_advertiser_ad_unit", "preamble": "", "advertiser_brand": {"name": "Zillow", "url": "https://www.zillow.com/", "favicon_url": "https://bzrcdn.openai.com/5a59f684310fe7a3.png", "id": "adacct_69a0c969ba808194bdaabea407d40bc0"}, "carousel_cards": [{"title": "Home Calculator", "body": "More than a calculator, BuyAbility personalizes your search. Find homes you can afford.", "target": {"type": "url", "value": "https://www.zillow.com/homeloans/buyability/?utm_medium=cpc&utm_source=chatgpt.com&utm_content=zhlbw_nb_buyer_mof_natip_usa_buyabilitysave_zhlc_acq_national_national_test_x_x_o_any_1_051826_test%7C40&utm_campaign=zhlbw_nb_buyer_mof_natip_usa_buyabilitysave_zhlc_acq_national_national_test_x_x_o_any_1_051826_test&oppref=gAAAAABqE1VMjtLbMNI_MoKgrbmY_CFq6XzhJzmDf3US-u26l91Bbzpqr7j9no4vv6uhae1cQ3vtw5EudyWXjPsfvwzXIV1T7VqMnox-wE80G4jnUDFaarQw&olref=gAAAAABqE1VMQd8WzbsXyr1Hsk17dQmESyzP1PaBVwWqhbLZL8qqITJQAV37xrhSNq3k6Wbln-b7izJ4VpDc8rUvHpGr5WQinXR26elcCDrvH1jbBU87gM7R4guioWjv2iiZqvIn9psd6kkWtqKV-F5J6w1moLdZ0ww", "open_externally": false}, "image_url": null, "ad_data_token": "eyJwYXlsb2FkIjoiZ0FBQUFBQnFFMVZNSUJHSU0yMGpEeUFGR3d0c2VyUHZ3V2tzUnJsbkxlaXpYcldnNHoxeHNoVHFJNDRlYU91OTdKTFZLN3hqaTdEaUF6VVZnT0dTMVhCOGg4SndXNWhPTGxwbFhtQVBnYVNBVExvV2xWWmVGUXdNaTFsUUE5aEJOczdHdXFTOG5tenRGaWU5d25uZ18wM2tfU0pQaGxzQUZGc1VER3ozMnBVYno5RUFRNnJCT2d4ZzJuaUJQaGwweUE4bVBvSlhFbG1mVFdxU09XS0dGWk9Ed2pMbXJ6U1NMaXV6TGYwSkxHNWdHZm55ZGZHSEpJWmJ2dU9YakJaRzJvZFdMQ05BX3NNeV9raTJHMFhTdVRmSTVnNnlvWUQ3V190Wm03TGc3OXA2b29Yb0FvQVk1eXpFMDBGTU0yVV8zc2N0d1lvZWEtQl85enZhbVFCc1k2SzlhOHFOWmJ0bXVGbUQta0Q2Z0VCdmJ6UDBxYXlYRHZEa2NOMUVnbmI0NXNxT0RndUpVOG42NjVIcllxTE80aGhMLW85UlNjSDF3aFBzVHlkbVVNTkNKNGVzSWZuUDBIcnRyOTcwQ2lJb19VMm9MbFRDajRQSTJGQ0JGMDQ4ejVRWEdmYXhLVFBsei15NWMtZEhJcUVXZWd3eVQwV3E3ZExwalgxOUVNa3l4M0xhdFU5LVpBWldJSndMLV9xenE3MFlTdWxXaGlFTEg0eTNGc1NjWHlEN2dlTmpoNEtoTnRHWDZYYV9VVC1ic0dXakVEYUFwcGczQ1QyaU5SZVR6alVxV3hWMExUYWhFTzFoVDQ1Ukh1OVJya0t2ZWVVcG00MWRXaU5MVWZ6RWpQSno4XzBrc0M5ZEF3RjFMaVVOd3NRaWEtZ3N2d2xBTFI1S195blB0Rl9YdG9zSFlHS09COHVGeU9Ndlh1UUo5Uk5UdDRkbE14Mi1IcnpDdDQwaVlJY29CNlpXNGVRSmJKSUlOMTRONEwzblhHSnZ3T0l4aWY4R0M1dG1DNXpRS1Zlcmc3WnhfQkRMTUNXOVdXVXVTSExqRnFVV18xd3RvVkxOdjk3NkJqbnR0NXpYcGg5Vzc5WXEtQ19NeDN1MXdyNnlzcXdTbEhSSGtWcV8wTnI2MTZaWDhoUVo3enVWZ0d2bjVLNVpmRzZpeHNhaFhGek1SdXVwYTMxUjYzTDVNT3FSRURRaVp0Z3ZXU3MxWG1ZQjlPVVhkbThRU3o5Y2NrZi1WcFgxdWx6M3Q1eEZTUGFfdnVCd2NxYkJRaE5hdjJ1TTViZmFVZG5wd1dLRTZFWlhfMG5IMU8xemhXN3Z4XzY1SUU5UUxGVEE4R0J3OHhTMVdvaXFjLUllV1BYYjllSHNQRkhqRGxhbGI0WWtOeE1fRlJHUE93MVIwalJGdDFXXzFuUmN2andxQW90d2dPZXM4aFpjRVNyaElhTEtBTHhWb2YtYWpaaHYya3gxQlQtU3dpbnZaZXFSWFRGSzRMSGVhYWh5ek1FZzZWVlFuY2psTkpxdFpwMnBEMHk1dXBHdXRiTm04S29oa040VDJ2UHVKc3FmWEZyM1BpdHB6UXVpTDVVVzJtM1RyX2FjcUNWbDVjMzVmQ2VNV1JLY1h6b1BNUHVZd3RrS2FUQWtlckhXYWd1MDY5TXJyd1BhMW40V1JpYTB5aUtlOUltMXB3M09URUQyTXdhN0U2ZE1zcnJjYkNxVU81Mm9jRUNVMDQ1UWdPQ0ZhWWxVUWs2TDFCZkVWZDhjcGlPWGd0Qzg2VlprYlF3LVk3b2wxME1fbTVLTkhwMTNSZEFWWkpGZlhPNVpQQ25pbk84SG5nRGdtWjdnMDVlWkN3SmM0RDA5UzN0Y0lZOG5fTTFMR0gyTmR1VVVBalV1bFRBdHJGRDdWU0Q1MUJ4YXV4ckxaZDd6dkNSY1dQcjZ0cGFkSWdUOFhoSUhvTFFvVnNoSXE5NXJybl8zSUVmMThrZGhBdlVDNkJMNGhsU0szRnZCbktkdDA2MTlKR0p3ekQzQWxxWV9IcjhNME1YYm9aQ29NaVVzYkZZN0p5TjVWZ0x6cTdISVlObThkQ3AzSE9kd2RWdDV3UlFzV05jOEtPQW80UWU2RjVjQ3dtOWU2Zk5HamVoZzBjRmhLY0s4RTJuVE5jTVNNcWpTY2E4WE03Q1RmRVZnTFdINHdfQjJQbE4xN3J5MElGczg0ZHpXdXVkbVZsRWg3M0NMc3hyUE1GazFNUW9uVUU5RlVXTEZCRnp3UGc3RUpUclh4Ul9oeGR2ejloa2JEZVlZdnY0WV9oU0xfaEN1aE1fOG1JZmVWbDd4Sjg4Wkc5cDNsRU1veHpUYzhQa29UdFc5T0paRlRyNXFEZm11VTRSM0RNOFBSZEJhV3hSQ2l6eUdnNGx5eV84UjFlSVZremxKai1MN2c2aFVZalZLMENOcWx3OW1ReFFLUXRqV3p1ZWVSUHgwOTNjVE5URDBQTEFFRUwxeVpvYVBYMnpMeHJ0elJvQTM5OTJ2Mkc0QzRVSllUNVpveDYwbXNIbndQblVRTldsYmduRkZpelI0bjNlY3BORHNfdjN4Rk1lX1lDMnZLLU9XUWs3cEVvYWViNEtndm8tWWQ5VEZjZnFDa21RUDNoX3hHNm5ldU04T3VDSk5DRlZRZjFaOWJjSW1RSFo4ZVhaak5vcWtIU2xISkhQQmo0UTdUSVFsVEdhTFExTmhhWVBjX2ktYnE5RkFMQWlhYW43TGlZcm9WLUVaSmJfc0JzVUNpR3o5SHN5cUV5TENETGhiMlhyOVdoOEk5dHQ3TlB3cGJ6LTBZXzUyNEhkT0FENjE5SWJKN1BvWTVUMTEydHQ0YWNqT2hFUDQwb2lVU1lZMDJFMkIzdDQtcXg5ODVsUy0tc0ljcS1ETUw0NmZrTmllNHY0Y0Q4VWZqcnFzcDFoMUxqSV91R0pBRDdDRGxpek01MFd3d0ZtQzVzc3htMU1sbkhiZGFpTnQwNGJCbzBoTmxaeVVOR3dZSFdjVkdHejNTTVZfZjFNWUE0MU4zYWFpcHV1SEZnYzJCVWxLMUhkT0pPVFd1TGNKajYza2JTSVZVQVhfY2VvTUhZbENYRndvQWNRS0RjeWFYemJ3aUlWdURjb1I4cmRVNGJManRJZ2JkWHNmNHVDdWFFRWwwUmJ4MHhDdXNiblphaXZBdTJJZlBVazR1OVV4WFBfdXRnS3RfblhNZFVyQmN2SW1UTE00SzBoVEF3NlFOSDkxck93eng3ZTVYbXByY3hWMVFKM3NqdmtpS2FWbWxZQlUydGx0Ymk1QmllVTVrQjc3akVoOHdSTzd1UjBaSGpQTk5zVFc2ckFfaUozamZybzVDeXd1Z0pTejVjT2JsMEZfajFxY3BqM2xBOXV6MXlKSU1TYWJZNGpOa0d0T2xvYUJobzg2T3ZRUURmLXk1dHh3WEpZNWZTX0k1eTZ5aEtYY3V5b3dMTVRBSWJhd1huNXRPXzVEXzlTbENxaERxV0FacU9JRzRwc1d1MGVuVGswWVFxSEJ2R3ZiMk14UTR1VlQ4clhKdkstM20xNTRLbFdzT0QtTmg5ejZjeU9nN1pDWnBmMkZqMXlCSjJLbXFOYi1Bd01GeThtQ3VJT0xpcWpFQmpPdmhIVkJDRUd0bEVRSHZDUERwbHFlYkpjNFJTd1U5dG40MTBiNWJBZmF0MjJuQnFidUNjdEVrLXpxZU15WkhkOXh3SVptbGFJUGNES0w4M1pnOXlLQ3g2cGRTUl9CSzBiTmhvT3ZrbWVpeVJWMUFqUEw3OGNNbXBPT2pIbnNFT2dha05rTldLTjJSREFQYmNwSTJjQUZGaEV5UTAyeGdHbFdmaXZ6ZWVvTF9pNVFkOXFMUDdxTlpSOHg3Y3hKdk1CZ3hFdGRvd2ttdEU1SjUzcmpEVFdXQWdpN0w0cDcxYnpxZUhiTHktVDN0dEt1NmtNUF9UaGEwQ2RwZlppanp6STNCRnVBNlNxQjJ6TG9EWkZrZ29JLWUyRmRyYkVvZnJidWYtWjY2cFFWTmNabXlYejdBZFNCSG5IbDZ6eFpUZEQxRFhuUy1XWEhhQWkxN1MwUTNuMExHQTNQUjNTUFRrYjhJRUg0TVpOZ3dSdlNYSU5LNmYtenp4YW9kYTlNNXNqRktBY20xelNPMS02VVFsX0RrcWxmN0EwWkpTVFlOUHZHWHhjSUNiQUhMYnRZM3ZVNy01Qm9aenFRQWJ2b0VFem04Y0VpQWhxenRXMDN1TFcxT19GRkg2OUdzUFpDcmk2NTRycWtMT09HWjlSLXZna2tTblp2VFZENHhoTkRBWUJTcTZUZnljTWFrZHVxZVhWbGNZaGo4TGRSY3lJZnNMTng5UW5BTzR0QVQ0ZDlzR2w3cmtZZjViMnlFNms0eTl4YnhNclhfQ05CcEI2am1EQnhSWWtNTGFnWUlXTXUyOU1vRGItZk80NmlrN2RNa0hvbDJMOXNHblc3enJlZC0xMTJvc3hBZ1JDOFNQZ2VEOUNXTklXdkVVeTM1c0NGTDRJWFdoSkdta0ZPY0VjeFlVcjlXWENrc2JUYTFJb19rNHYtUTd3X2JaMmxzWXgzdGl2SVY5TUJ2WUdwbjRtQmxremZkZ3BmcnpNek00cE1vYmx4azNpSkI1cS1TSzdfNGk4SERpcHh2LWlMTldJal9aQ1hHYTFVT0FCcjkwUGloNmViNkV4QkI3eE5FVTJBalV2Rk5pa2RrTERXMm51Mlg4N2E1aHRUZDRGLXNrbWpaMlFUWWZCOUFkQkZvVEF5NnJhZUNfcUlDZW5XRkI0VjJyZ3R1ZUhlVFVoQlZxZkNLaVh4dHBNTFd6NlZ3U3ZXbzNIbko4MFVhbTBQaWtYWHdjajB2SjJOS1FsVHR4S0Ntd1Z1VzNfSzNwUVlqQjRYMGVlaGNTRzRUTHZEOVFnOFExX2dLUFgzak9SeVJmWG9sQ09QWDItSGtaczg3bWFBWUJYVm5iT2dRSE9fWkthbWVkUV9IX0ZHVGh0NzBZbWZvbUZyYUdwSTRPZzVTb2x0dnVkeHhIQ2tUcmpJMnE5T01TYl9nTi1MLUViNDBocWtSeTh0TlRDbmV4Uy1kTGZGQ2VnN3JXcnhfNHRSY0J6OFN3YUZmV2QzTDEwdUFEVlRyaW5kQXgteEMtZFF1X1M5Nm1KbEpFMHRveXlCRkpzZ21fTkNBWDNCXzdHYmp3WTdXc2xJQlo1cV9ZNVFhNHFiLS1ZZjR6N0tfUUdUM3FmdXQzRHBOb2oxVFNQVVdSVHZqOVNUbnBDS2JONUEySDRHWWs0N3dGLXRPaTRSZXRKMjg4alFmcWZJaVZnM3pJT1BZUi13ajhCWVR0NmljRXRjcnhuSUJtY0ZnWS1ZNGttdjgxLWRBYnhmZm10VXIwMHA1eWVwa2VJTG9mMEFmR19yRHhiUzJmbEp6WnpidkZFRFh4RlJZcWJvbE1WSFNVVFAyaktyUEZuSXlXbzB5UHpFRU5RUzNDdWVkVzl1SlNNNTVLQkhwMFQzSHRMTWxjOC1xRDRnRHgwWmxrRXNkZGp0aUQ1empMbXdyTGMtbUxRWHJwYTl1YjJzbDVYcFF4UFdyVHFPYmJST0FPVC00Y3JkbndNcks0NmdUTmlmNm56WFdIcHlsUjVrMXdocDZHZHI2Tm1tcWFESGdxRDB2MkpVem1rV3BnRXVYckd0Z3JTNm54d0N6TVQybFdoRUd2cFUtNndwU0VEZUNzMzVjSXMwYWpsUWZmbXJPeXdCRzZFYjlVajVoM0ZQclFpcXVhQng4MVZGZmUwaEdCLWdDWXY3MlcyYWlpSm94NnJEbm81bjdKTkxlQ2w3eGpLRWtxWkVmQ1lyMDRwV2pFUkt2dFFsdGUwQmdNREoxNWJKM2lzbGdKb25ySmIxRmFxLXc5Z2tkT3hjNkt0XzdBSzVzbVNlUDlmUHJWejBPYk0ta0pMVzNsSTJqc01kS25UdFA5YXRZSS1ieGZBQTRzclV0a3Q3VDBrNjBuM3paWnRJTGtHNjNkRmVXSGR6eklaUnp0QzFrUmVoS1gtay1LaWdSNVVyQXlmeFNvNVB0ZEtkeDdtQlVuNTFrWUJCU1FlZmdseXZkVy1aS2syellNM0tYZ3B2c1gyWkhTTGpjTDVWenNmRzZuWTlkR1R4YWlqV0Qtd1JlSEpVWEEwdzBnS1paZEZHY3NIRVhwTGJsV245V1JyUDVGQ21TSG5HRjc1dFdpU0c0SUZweGlqSmpmUnNQczhZODFMMEM0VW1xZnpNLVFiejBzM2pnSnBxQTJhcTAzbVMwdjg9IiwidmVyc2lvbiI6Mn0="}], "ad_cards": null}, "visibility": {"status": "allowed", "reason": null}, "debug_info": null}
+
+data: [DONE]
+

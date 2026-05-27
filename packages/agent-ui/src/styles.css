@@ -1,0 +1,108 @@
+/*
+ * @adambossy/agent-ui design tokens + component styles.
+ *
+ * Consumers must process this through Tailwind v4. Import it once, after
+ * `@import "tailwindcss"`, in your app's stylesheet:
+ *
+ *   @import "tailwindcss";
+ *   @import "@adambossy/agent-ui/styles.css";
+ *
+ * and make sure Tailwind scans the package's components for class names, e.g.:
+ *
+ *   @source "../node_modules/@adambossy/agent-ui/dist";
+ */
+
+@import "streamdown/styles.css";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-background: #ffffff;
+  --color-foreground: #0a0a0a;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #71717a;
+  --color-border: #e5e5e5;
+  --color-card: #ffffff;
+  --color-card-foreground: #0a0a0a;
+  --color-primary: #0a0a0a;
+  --color-primary-foreground: #fafafa;
+  --color-secondary: #f5f5f5;
+  --color-secondary-foreground: #0a0a0a;
+  --color-accent: #ededed;
+  --color-accent-foreground: #0a0a0a;
+  --color-destructive: #ef4444;
+  --color-subagent-tint: #b8552a;
+  --color-subagent-tint-bg: rgba(184, 85, 42, 0.06);
+  --color-subagent-tint-border: rgba(184, 85, 42, 0.35);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0a0a0a;
+    --color-foreground: #fafafa;
+    --color-muted: #1f1f1f;
+    --color-muted-foreground: #a1a1aa;
+    --color-border: #262626;
+    --color-card: #0a0a0a;
+    --color-card-foreground: #fafafa;
+    --color-primary: #fafafa;
+    --color-primary-foreground: #0a0a0a;
+    --color-secondary: #1f1f1f;
+    --color-secondary-foreground: #fafafa;
+    --color-accent: #1f1f1f;
+    --color-accent-foreground: #fafafa;
+  }
+}
+
+@keyframes streaming-caret {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0; }
+}
+.streaming-caret::after {
+  content: "▍";
+  display: inline-block;
+  margin-left: 1px;
+  animation: streaming-caret 1s steps(1) infinite;
+  color: var(--color-muted-foreground);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.pulse-dot { animation: pulse-dot 1.2s ease-in-out infinite; }
+
+/* Hide the horizontal scrollbar on the mobile pane-swiper while keeping
+ * scroll + snap behaviour. */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tighten the Tailwind `prose` defaults for chat-bubble content so paragraphs
+ * don't carry the wide vertical rhythm a long article would. */
+.prose p { margin: 0.35em 0; }
+.prose ul, .prose ol { margin: 0.4em 0; }
+.prose li { margin: 0.15em 0; }
+.prose h1, .prose h2, .prose h3 { margin-top: 0.8em; margin-bottom: 0.4em; }
+.prose code:not(pre code) {
+  background: var(--color-muted);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+.prose code:not(pre code)::before,
+.prose code:not(pre code)::after { content: none; }
+.prose pre {
+  margin: 0.6em 0;
+  padding: 0.75em 1em;
+  border-radius: 8px;
+  font-size: 0.85em;
+}

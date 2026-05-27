@@ -1,0 +1,11 @@
+event: delta_encoding
+data: "v1"
+
+data: {"type": "resume_conversation_token", "kind": "topic", "token": "...", "conversation_id": "6a1353cd-db50-83e8-8e99-0ceb8b507ffb"}
+
+data: {"type": "input_message", "input_message": {"id": "...", "author": {"role": "user", ...}, "content": {"content_type": "text", "parts": ["Find three different recent news articles..."]}, "metadata": {"resolved_model_slug": "gpt-5-5", ...}}}
+
+event: delta
+data: {"p": "", "o": "add", "v": {"message": {"id": "...", "author": {"role": "system", ...}, "metadata": {"is_visually_hidden_from_conversation": true, "citations": [], "content_references": [...]}}}}
+
+(see sse-turn2.txt for full body fetched at runtime)

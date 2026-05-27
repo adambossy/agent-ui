@@ -1,0 +1,22 @@
+{
+  "name": "agent-ui",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "A React agent chat UI, shipped as a library (@adambossy/agent-ui) with a dev playground.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w playground",
+    "build": "npm run build -w @adambossy/agent-ui",
+    "build:playground": "npm run build -w playground",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

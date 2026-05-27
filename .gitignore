@@ -1,17 +1,3 @@
-# OS
-.DS_Store
-Thumbs.db
-
-# Editors
-.vscode/
-.idea/
-*.swp
-
-# Environment (secrets — never tracked)
-.env
-.env.local
-.env.*.local
-
 # Dependencies
 node_modules/
 .npm/
@@ -19,42 +5,35 @@ node_modules/
 # Build artifacts
 dist/
 build/
+dist-ssr/
 *.tsbuildinfo
 .next/
 .turbo/
 
-# App-local dev outputs (screenshots, preview pngs)
-app/_shots/
-report/_preview-*.png
-plan/_preview-*.png
-report/_preview-chatgpt.png
-report/_preview-index.png
+# Environment (secrets — never tracked)
+.env
+.env.local
+.env.*.local
 
-# Cloned upstream repos — kept locally for research only, not tracked
-opencode/repo/
-pi/repo/
-chatkit-js/chatkit-js/
-chatkit-js/starter/
-chatkit-js/advanced/
-vercel-chat-sdk/repo/
-vercel-ai-elements/repo/
-pi-web/
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
-# Large research outputs / scratch
-pi/large-session.html
-pi/live-export.html
-pi/screen-*.png
-pi/screens-*.png
-chatgpt/screens/
-chatgpt/sse-*.txt
-vercel-chat-sdk/sse-*.txt
-vercel-chat-sdk/screen-*.png
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.local
 
-# Playwright MCP scratch
+# Research scratch — regenerable artifacts kept locally, never committed
+docs/research/**/screens/
+docs/research/**/sse-*.txt
+docs/research/**/repo/
+docs/research/**/_preview-*.png
+
+# Tooling scratch
 .playwright-mcp/
-
-# Notes scratch directories under per-target folders (research artifacts only)
-chatgpt/notes/
-chatkit-js/notes/
-vercel-chat-sdk/notes/
-vercel-ai-elements/notes/
