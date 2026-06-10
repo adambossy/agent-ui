@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
+import { randomUUID } from "@adambossy/agent-ui";
 import type { LiveRendererProps } from "@adambossy/agent-ui";
 import type { Todo, TodoOp } from "./schema";
 
@@ -14,7 +15,7 @@ export function TodoListView({ doc, dispatch, meta }: LiveRendererProps<Todo, To
     e.preventDefault();
     const text = newText.trim();
     if (!text) return;
-    dispatch({ kind: "add-item", id: crypto.randomUUID(), text });
+    dispatch({ kind: "add-item", id: randomUUID(), text });
     setNewText("");
   }
 

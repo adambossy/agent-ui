@@ -1,3 +1,4 @@
+import { randomUUID } from "../lib/uuid";
 import { useLiveDocStore } from "./store";
 
 /**
@@ -14,7 +15,7 @@ export class LiveOpClient {
   }
 
   async send(kind: string, docId: string, op: unknown): Promise<void> {
-    const opId = crypto.randomUUID();
+    const opId = randomUUID();
     const store = useLiveDocStore.getState();
     const k = `${kind}::${docId}`;
     const entry = store.docs[k];

@@ -8,6 +8,7 @@ import {
   useLiveDocStore,
   useLiveUIStore,
   LiveDocsPanel,
+  randomUUID,
 } from "@adambossy/agent-ui";
 import type { SubagentEvent, LiveOpEvent, UIMessage } from "@adambossy/agent-ui";
 import { BACKEND_MODE, isUuid, makeTransport, newSessionId, primeRealBackend } from "../backend";
@@ -46,9 +47,8 @@ export function ChatScreen() {
     id: sessionId,
     transport,
     // Real backend (vercel/chatbot template) requires UUIDs for user message
-    // ids. Using crypto.randomUUID() for every generated id keeps mock + real
-    // happy.
-    generateId: () => crypto.randomUUID(),
+    // ids. Using randomUUID() for every generated id keeps mock + real happy.
+    generateId: () => randomUUID(),
     onData: (part) => {
       if (part.type === "data-subagent-event") {
         applySubagent(part.data as SubagentEvent);

@@ -1,5 +1,6 @@
 import { DefaultChatTransport } from "ai";
 import type { ChatTransport, UIMessage } from "ai";
+import { randomUUID } from "@adambossy/agent-ui";
 
 declare const __BACKEND_MODE__: string;
 export const BACKEND_MODE: "mock" | "real" =
@@ -78,5 +79,5 @@ export function isUuid(v: string): boolean {
 }
 
 export function newSessionId(): string {
-  return crypto.randomUUID();
+  return randomUUID();
 }

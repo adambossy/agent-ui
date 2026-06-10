@@ -30,5 +30,9 @@ export type { SubagentEvent, SubagentSession } from "./state/subagentStore";
 // the zod codec helper, and the live-op protocol types.
 export * from "./live";
 
+// --- Utilities ---
+// UUID v4 that also works in non-secure contexts (plain-http LAN dev servers).
+export { randomUUID } from "./lib/uuid";
+
 // --- Shared message / part types ---
 export * from "./types";
