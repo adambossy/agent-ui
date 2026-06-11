@@ -26,7 +26,7 @@ export function DefaultTool({ part }: ToolRendererProps) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-accent transition-colors cursor-pointer"
       >
         <ChevronRight
           size={14}

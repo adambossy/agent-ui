@@ -46,7 +46,7 @@ export function SubagentTool({ part, allowExpand = true }: Props) {
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-label={open ? "Collapse subagent" : "Expand subagent"}
-            className="inline-flex items-center justify-center w-7 h-7 -ml-1 rounded hover:bg-accent"
+            className="inline-flex items-center justify-center w-7 h-7 -ml-1 rounded hover:bg-accent cursor-pointer"
           >
             <ChevronRight
               size={14}

@@ -46,7 +46,7 @@ export function Reasoning({ text, isStreaming }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-accent text-[13px]"
+        className="inline-flex items-center gap-1.5 px-2 py-1 rounded hover:bg-accent text-[13px] cursor-pointer"
       >
         <ChevronRight
           size={13}
