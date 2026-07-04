@@ -34,5 +34,9 @@ export * from "./live";
 // UUID v4 that also works in non-secure contexts (plain-http LAN dev servers).
 export { randomUUID } from "./lib/uuid";
 
+// --- Reminder stripping ---
+// Removes <system-reminder> spans from user-visible text (model-facing context only).
+export { stripSystemReminders } from "./reminders";
+
 // --- Shared message / part types ---
 export * from "./types";

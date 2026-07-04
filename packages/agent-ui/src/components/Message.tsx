@@ -2,6 +2,7 @@ import type { UIMessage, UIMessagePart } from "../types";
 import { resolveToolRenderer } from "../tools/registry";
 import { Reasoning } from "./Reasoning";
 import { Markdown } from "./Markdown";
+import { stripSystemReminders } from "../reminders";
 
 type Props = { message: UIMessage; isStreaming?: boolean };
 
@@ -27,10 +28,12 @@ function textStreaming(
 
 export function Message({ message, isStreaming }: Props) {
   if (message.role === "user") {
-    const text = message.parts
-      .filter((p): p is Extract<UIMessagePart, { type: "text" }> => p.type === "text")
-      .map((p) => p.text)
-      .join("");
+    const text = stripSystemReminders(
+      message.parts
+        .filter((p): p is Extract<UIMessagePart, { type: "text" }> => p.type === "text")
+        .map((p) => p.text)
+        .join(""),
+    );
     return (
       <div className="flex justify-end my-3">
         <div className="max-w-[78%] rounded-2xl bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
